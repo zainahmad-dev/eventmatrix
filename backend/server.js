@@ -4,6 +4,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const eventsRouter = require('./routes/events');
 const authRouter = require('./routes/auth');
+const adminRouter = require('./routes/admin');
+const quotationsRouter = require('./routes/quotations');
 
 dotenv.config();
 
@@ -17,6 +19,7 @@ require('./models/Employee');
 require('./models/Inventory');
 require('./models/Payment');
 require('./models/Quotation');
+require('./models/AdminActionLog');
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/eventmatrix';
@@ -24,7 +27,7 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/eventmatri
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(async () => {
     console.log('Connected to MongoDB');
-    const modelNames = ['User', 'Event', 'Employee', 'Inventory', 'Payment', 'Quotation'];
+    const modelNames = ['User', 'Event', 'Employee', 'Inventory', 'Payment', 'Quotation', 'AdminActionLog'];
     await Promise.all(modelNames.map(async (name) => {
       await mongoose.model(name).createCollection();
     }));
@@ -36,6 +39,8 @@ app.get('/', (req, res) => res.send('EventMatrix backend running'));
 
 app.use('/api/events', eventsRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/quotations', quotationsRouter);
 
 // quick test route to create an admin if needed
 app.post('/test-user', async (req, res) => {
