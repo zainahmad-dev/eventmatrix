@@ -82,7 +82,7 @@ export function LoginPage({ onLoginSuccess }) {
             <Sparkles size={14} />
             {mode === 'login' ? 'Secure sign in' : 'Create account'}
           </span>
-          <h1>{mode === 'login' ? 'Sign in to EventMatrix' : 'Create your EventMatrix account'}</h1>
+          <h2>{mode === 'login' ? 'Sign in to EventMatrix' : 'Create your EventMatrix account'}</h2>
           <p>
             {mode === 'login'
               ? 'Use your registered email and password to access your dashboard.'
@@ -239,10 +239,21 @@ export function LoginPage({ onLoginSuccess }) {
             )}
           </button>
 
-          <button className="secondary-action" type="button" disabled={loading}>
-            <Clock3 size={16} />
-            {mode === 'login' ? 'Switch role above if needed' : 'I already have an account'}
-          </button>
+          {mode === 'signup' ? (
+            <button
+              className="secondary-action"
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                setMode('login');
+                setError('');
+                setSuccessMessage('');
+              }}
+            >
+              <Clock3 size={16} />
+              I already have an account
+            </button>
+          ) : null}
         </form>
       </section>
     </section>

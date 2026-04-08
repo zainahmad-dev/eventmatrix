@@ -1,26 +1,9 @@
+import { useEffect, useMemo, useState } from 'react';
 import { BadgeDollarSign, Bell, CalendarClock, CheckSquare, ClipboardCheck, Star, UserCheck } from 'lucide-react';
+import { fetchEvents } from '../../api/events';
+import { EmployeeSectionNavbar } from './navbar/EmployeeSectionNavbar';
 
-const overview = [
-  { label: 'Assigned Events', value: '6' },
-  { label: 'Attendance History', value: '96%' },
-  { label: 'Performance Rating', value: '4.6 / 5' },
-  { label: 'Bonus & Overtime', value: 'PKR 320.00' },
-  { label: 'Monthly Salary', value: 'PKR 1,900.00' },
-];
-
-const tasks = [
-  'View event schedules',
-  'Mark attendance',
-  'Check assigned roles',
-  'Follow event preparation checklists',
-];
-
-const timeline = [
-  '10:00 AM - Venue setup for wedding',
-  '01:00 PM - Lighting check and decoration review',
-  '03:00 PM - Staff briefing and checklist confirmation',
-  '07:00 PM - Event execution support',
-];
+const formatPKR = (amount) => `PKR ${Number(amount || 0).toLocaleString('en-PK')}`;
 
 function FeatureCard({ icon, title, items }) {
   return (
@@ -39,14 +22,71 @@ function FeatureCard({ icon, title, items }) {
 }
 
 export function EmployeeDashboard({ user }) {
+  const [events, setEvents] = useState([]);
+  const [message, setMessage] = useState('');
+  const sectionItems = [
+    { id: 'employee-overview', label: 'Overview' },
+    { id: 'employee-event-tasks', label: 'Event Tasks' },
+    { id: 'employee-timeline', label: 'Timeline' },
+    { id: 'employee-tools', label: 'Tools' },
+  ];
+
+  const loadEvents = async () => {
+    try {
+      const data = await fetchEvents();
+      setEvents(data);
+      setMessage('');
+    } catch (error) {
+      setMessage(error.message);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
+    const timer = window.setInterval(loadEvents, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const approvedEvents = useMemo(() => events.filter((event) => event.status === 'approved'), [events]);
+  const pendingEvents = useMemo(() => events.filter((event) => event.status === 'pending'), [events]);
+  const completedEvents = useMemo(() => events.filter((event) => event.status === 'completed'), [events]);
+
+  const tasks = useMemo(() => {
+    if (!approvedEvents.length) {
+      return ['No approved event assigned yet. Waiting for admin approvals.', 'Check back after booking approvals are made.'];
+    }
+
+    return approvedEvents.slice(0, 4).map((event) => (
+      `${event.eventType.toUpperCase()} | ${event.eventDate} | ${event.venue}`
+    ));
+  }, [approvedEvents]);
+
+  const timeline = useMemo(() => {
+    if (!events.length) {
+      return ['No event timeline available yet.'];
+    }
+
+    return events.slice(0, 4).map((event) => `${event.eventDate || 'TBD'} - ${event.eventType} (${event.status})`);
+  }, [events]);
+
+  const overview = useMemo(() => ([
+    { label: 'Approved Events', value: String(approvedEvents.length) },
+    { label: 'Pending Events', value: String(pendingEvents.length) },
+    { label: 'Completed Events', value: String(completedEvents.length) },
+    { label: 'Role', value: user?.employeeRole ? user.employeeRole.replace('_', ' ').toUpperCase() : 'EMPLOYEE' },
+    { label: 'Monthly Salary', value: formatPKR(user?.salary || 0) },
+  ]), [approvedEvents.length, pendingEvents.length, completedEvents.length, user?.employeeRole, user?.salary]);
+
   return (
     <section className="dashboard-shell" aria-label="Employee dashboard">
       <div className="dashboard-header">
         <h1>Employee Panel</h1>
-        <p>Welcome {user?.name || 'Employee'}. Track tasks, attendance, schedule, and salary details.</p>
+        <p>Welcome {user?.name || 'Employee'}. Event tasks and status are synced with admin updates in realtime.</p>
       </div>
 
-      <section className="overview-grid" aria-label="Employee overview">
+      <EmployeeSectionNavbar items={sectionItems} />
+
+      <section id="employee-overview" className="overview-grid employee-target-section" aria-label="Employee overview">
         {overview.map((item) => (
           <article className="overview-card" key={item.label}>
             <p>{item.label}</p>
@@ -56,11 +96,17 @@ export function EmployeeDashboard({ user }) {
       </section>
 
       <section className="dashboard-grid">
-        <FeatureCard icon={<ClipboardCheck size={18} />} title="Event Tasks" items={tasks} />
-        <FeatureCard icon={<CalendarClock size={18} />} title="Today Timeline" items={timeline} />
+        <div id="employee-event-tasks" className="employee-target-section">
+          <FeatureCard icon={<ClipboardCheck size={18} />} title="Event Tasks" items={tasks} />
+        </div>
+        <div id="employee-timeline" className="employee-target-section">
+          <FeatureCard icon={<CalendarClock size={18} />} title="Today Timeline" items={timeline} />
+        </div>
       </section>
 
-      <article className="dashboard-card dashboard-card--wide">
+      {message ? <p className="dashboard-copy">{message}</p> : null}
+
+      <article id="employee-tools" className="dashboard-card dashboard-card--wide employee-target-section">
         <div className="dashboard-card-header">
           <UserCheck size={18} />
           <h3>Employee Tools</h3>

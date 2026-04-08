@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, CalendarDays, CreditCard, FileText, HandPlatter, MapPin } from 'lucide-react';
-import { addBooking, getBookings } from '../../lib/bookings';
+import { createEventBooking, fetchEvents } from '../../api/events';
+import { CustomerSectionNavbar } from './navbar/CustomerSectionNavbar';
 
 const formatPKR = (amount) => `PKR ${Number(amount || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -66,11 +67,33 @@ export function CustomerDashboard({ user }) {
   const [form, setForm] = useState(defaultForm);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [bookings, setBookings] = useState(() => getBookings());
+  const [bookings, setBookings] = useState([]);
+  const sectionItems = [
+    { id: 'customer-overview', label: 'Overview' },
+    { id: 'customer-booking-interface', label: 'Booking Interface' },
+    { id: 'customer-payment-interface', label: 'Payment Interface' },
+    { id: 'customer-notifications', label: 'Notifications' },
+    { id: 'customer-booking-snapshot', label: 'Booking Snapshot' },
+  ];
 
   const myBookings = useMemo(() => (
     bookings.filter((booking) => booking.customerEmail === user?.email)
   ), [bookings, user?.email]);
+
+  const loadBookings = async () => {
+    try {
+      const data = await fetchEvents();
+      setBookings(data);
+    } catch (error) {
+      setSubmitError(error.message);
+    }
+  };
+
+  useEffect(() => {
+    loadBookings();
+    const timer = window.setInterval(loadBookings, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const latestBooking = myBookings[0];
 
@@ -115,7 +138,7 @@ export function CustomerDashboard({ user }) {
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitMessage('');
     setSubmitError('');
@@ -126,7 +149,6 @@ export function CustomerDashboard({ user }) {
     }
 
     const booking = {
-      id: `booking-${Date.now()}`,
       customerName: user?.name || 'Customer',
       customerEmail: user?.email || 'unknown@local',
       eventType: form.eventType,
@@ -141,14 +163,17 @@ export function CustomerDashboard({ user }) {
       total: calculator.subtotal,
       advance: calculator.advance,
       remaining: calculator.remaining,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
+      status: 'pending'
     };
 
-    const next = addBooking(booking);
-    setBookings(next);
-    setSubmitMessage('Booking submitted successfully. Admin can now review it in the dashboard.');
-    setForm((current) => ({ ...defaultForm, eventDate: current.eventDate }));
+    try {
+      await createEventBooking(booking);
+      await loadBookings();
+      setSubmitMessage('Booking submitted successfully. Admin can now review it in real time.');
+      setForm((current) => ({ ...defaultForm, eventDate: current.eventDate }));
+    } catch (error) {
+      setSubmitError(error.message);
+    }
   };
 
   return (
@@ -158,7 +183,9 @@ export function CustomerDashboard({ user }) {
         <p>Welcome {user?.name || 'Customer'}. Create a booking request, see instant pricing, and submit it for admin approval.</p>
       </div>
 
-      <section className="overview-grid" aria-label="Customer overview">
+      <CustomerSectionNavbar items={sectionItems} />
+
+      <section id="customer-overview" className="overview-grid customer-target-section" aria-label="Customer overview">
         {overview.map((item) => (
           <article className="overview-card" key={item.label}>
             <p>{item.label}</p>
@@ -168,7 +195,7 @@ export function CustomerDashboard({ user }) {
       </section>
 
       <section className="dashboard-grid">
-        <article className="dashboard-card dashboard-card--wide">
+        <article id="customer-booking-interface" className="dashboard-card dashboard-card--wide customer-target-section">
           <div className="dashboard-card-header">
             <CalendarDays size={18} />
             <h3>Event Booking Interface</h3>
@@ -242,11 +269,15 @@ export function CustomerDashboard({ user }) {
             <button className="primary-action" type="submit">Submit Booking Request</button>
           </form>
         </article>
-        <FeatureCard icon={<CreditCard size={18} />} title="Payment Interface" items={payments} />
-        <FeatureCard icon={<Bell size={18} />} title="Notifications" items={notifications} />
+        <div id="customer-payment-interface" className="customer-target-section">
+          <FeatureCard icon={<CreditCard size={18} />} title="Payment Interface" items={payments} />
+        </div>
+        <div id="customer-notifications" className="customer-target-section">
+          <FeatureCard icon={<Bell size={18} />} title="Notifications" items={notifications} />
+        </div>
       </section>
 
-      <article className="dashboard-card dashboard-card--wide">
+      <article id="customer-booking-snapshot" className="dashboard-card dashboard-card--wide customer-target-section">
         <div className="dashboard-card-header">
           <MapPin size={18} />
           <h3>Current Booking Snapshot</h3>

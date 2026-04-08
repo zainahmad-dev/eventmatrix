@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import {
   Bell,
@@ -6,7 +6,7 @@ import {
   Gauge,
   TrendingUp,
 } from 'lucide-react';
-import { getBookings, updateBookingStatus } from '../../lib/bookings';
+import { fetchEvents, updateEventStatus } from '../../api/events';
 import { InventoryPanel } from './Inventory';
 import { EmployeeManagementPanel } from './EmployeeManagement';
 import { QuotationInvoicesPanel } from './quotation/QuotationInvoicesPanel';
@@ -42,11 +42,6 @@ const analyticsHighlights = [
   },
 ];
 
-const eventManagement = [
-  'Bookings submitted by customers now appear in the request queue below.',
-  'Admins can approve or reject each request directly from this dashboard.',
-];
-
 const notifications = [
   'No data connected yet.',
 ];
@@ -69,7 +64,8 @@ function FeatureCard({ icon, title, items }) {
 
 export function AdminDashboard({ user }) {
   const sectionRef = useRef(null);
-  const [bookings, setBookings] = useState(() => getBookings());
+  const [bookings, setBookings] = useState([]);
+  const [eventSectionMessage, setEventSectionMessage] = useState('');
   const sectionItems = [
     { id: 'admin-overview', label: 'Overview' },
     { id: 'admin-insights', label: 'Business Intelligence' },
@@ -136,9 +132,38 @@ export function AdminDashboard({ user }) {
     },
   ]), [metrics]);
 
-  const handleStatusChange = (bookingId, status) => {
-    const next = updateBookingStatus(bookingId, status);
-    setBookings(next);
+  const eventManagement = useMemo(() => {
+    if (!bookings.length) {
+      return ['No bookings stored yet in database.', 'Customer submissions will appear here in real time.'];
+    }
+
+    const approved = bookings.filter((booking) => booking.status === 'approved').length;
+    const pending = bookings.filter((booking) => booking.status === 'pending').length;
+    const rejected = bookings.filter((booking) => booking.status === 'rejected').length;
+
+    return [
+      `Total bookings stored: ${bookings.length}`,
+      `Pending: ${pending}, Approved: ${approved}, Rejected: ${rejected}`,
+    ];
+  }, [bookings]);
+
+  const loadBookings = async () => {
+    try {
+      const data = await fetchEvents();
+      setBookings(data);
+      setEventSectionMessage('');
+    } catch (error) {
+      setEventSectionMessage(error.message);
+    }
+  };
+
+  const handleStatusChange = async (bookingId, status) => {
+    try {
+      await updateEventStatus(bookingId, status);
+      await loadBookings();
+    } catch (error) {
+      setEventSectionMessage(error.message);
+    }
   };
 
   useLayoutEffect(() => {
@@ -170,6 +195,12 @@ export function AdminDashboard({ user }) {
     }, sectionRef);
 
     return () => ctx.revert();
+  }, []);
+
+  useEffect(() => {
+    loadBookings();
+    const timer = window.setInterval(loadBookings, 5000);
+    return () => window.clearInterval(timer);
   }, []);
 
   return (
@@ -216,6 +247,7 @@ export function AdminDashboard({ user }) {
       <section className="dashboard-grid admin-dashboard-grid">
         <div id="admin-event-management" className="admin-target-section admin-grid-slot admin-grid-slot--event">
           <FeatureCard icon={<CalendarCheck2 size={18} />} title="Event Management" items={eventManagement} />
+          {eventSectionMessage ? <p className="dashboard-copy">{eventSectionMessage}</p> : null}
         </div>
         <div id="admin-employee" className="admin-target-section admin-grid-slot admin-grid-slot--employee">
           <EmployeeManagementPanel />

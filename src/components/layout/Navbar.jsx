@@ -1,4 +1,4 @@
-import { ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export function Navbar({ currentUser, onLogout }) {
   const roleLabel = currentUser?.role
@@ -9,7 +9,7 @@ export function Navbar({ currentUser, onLogout }) {
     <header className="site-nav">
       <div className="brand-lockup">
         <div className="brand-mark">
-          <Sparkles size={18} />
+          <span className="brand-mark-text">EM</span>
         </div>
         <div>
           <p className="brand-title">EventMatrix</p>
@@ -28,7 +28,7 @@ export function Navbar({ currentUser, onLogout }) {
       ) : (
         <div className="nav-pill">
           <ShieldCheck size={16} />
-          <span>Mongo-backed authentication</span>
+          <span>EventMatrix</span>
         </div>
       )}
     </header>

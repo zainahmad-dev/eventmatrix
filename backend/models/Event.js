@@ -2,6 +2,18 @@ const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema({
   customer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  customerName: String,
+  customerEmail: String,
+  eventType: String,
+  eventDate: String,
+  seatCategory: String,
+  seatCount: Number,
+  menuPlan: String,
+  decoration: Boolean,
+  lighting: Boolean,
+  cateringSupport: Boolean,
+  advanceAmount: { type: Number, default: 0 },
+  remainingAmount: { type: Number, default: 0 },
 
   title: String,
   date: Date,
@@ -24,7 +36,7 @@ const eventSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["pending", "approved", "completed"],
+    enum: ["pending", "approved", "completed", "rejected"],
     default: "pending"
   },
 

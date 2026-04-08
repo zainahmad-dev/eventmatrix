@@ -6,6 +6,7 @@ const eventsRouter = require('./routes/events');
 const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const quotationsRouter = require('./routes/quotations');
+const employeesRouter = require('./routes/employees');
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use('/api/events', eventsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/quotations', quotationsRouter);
+app.use('/api/employees', employeesRouter);
 
 // quick test route to create an admin if needed
 app.post('/test-user', async (req, res) => {
