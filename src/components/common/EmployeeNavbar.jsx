@@ -1,4 +1,4 @@
-export function AdminSectionNavbar({ items }) {
+export function EmployeeNavbar({ items }) {
   const handleNavigate = (sectionId) => {
     const target = document.getElementById(sectionId);
     if (!target) {
@@ -8,7 +8,7 @@ export function AdminSectionNavbar({ items }) {
   };
 
   return (
-    <nav className="admin-section-navbar admin-animate-card" aria-label="Admin section navigation">
+    <nav className="employee-section-navbar" aria-label="Employee section navigation">
       {items.map((item) => (
         <button key={item.id} type="button" onClick={() => handleNavigate(item.id)}>
           {item.label}

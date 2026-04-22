@@ -1,4 +1,4 @@
-export function EmployeeSectionNavbar({ items }) {
+export function CustomerNavbar({ items }) {
   const handleNavigate = (sectionId) => {
     const target = document.getElementById(sectionId);
     if (!target) {
@@ -8,7 +8,7 @@ export function EmployeeSectionNavbar({ items }) {
   };
 
   return (
-    <nav className="employee-section-navbar" aria-label="Employee section navigation">
+    <nav className="customer-section-navbar" aria-label="Customer section navigation">
       {items.map((item) => (
         <button key={item.id} type="button" onClick={() => handleNavigate(item.id)}>
           {item.label}

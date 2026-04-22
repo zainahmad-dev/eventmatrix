@@ -28,7 +28,7 @@ export function InventoryPanel({ bookings }) {
         <li>VIP seats used: {usage.vip} / {categoryCapacity.vip}</li>
         <li>Premium seats used: {usage.premium} / {categoryCapacity.premium}</li>
         <li>Standard seats used: {usage.standard} / {categoryCapacity.standard}</li>
-        <li>Lighting, decoration, and catering inventory module: ready for backend integration.</li>
+        <li>Lighting, decoration, and catering inventory module.</li>
       </ul>
     </article>
   );

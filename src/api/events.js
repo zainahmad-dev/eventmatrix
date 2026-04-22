@@ -1,12 +1,38 @@
+function getAuthHeader() {
+  const token = localStorage.getItem('eventmatrix_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function fetchEvents() {
-  const response = await fetch('/api/events');
-  const payload = await response.json().catch(() => ([]));
+  try {
+    const response = await fetch('/api/events', {
+      headers: getAuthHeader(),
+    });
+    let payload = [];
 
-  if (!response.ok) {
-    throw new Error(payload.error || 'Unable to fetch events.');
+    try {
+      payload = await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse events response:', parseError);
+      payload = [];
+    }
+
+    if (!response.ok) {
+      const errorMsg = (payload && payload.error) || 'Unable to fetch events.';
+      throw new Error(errorMsg);
+    }
+
+    // Ensure payload is always an array
+    if (!Array.isArray(payload)) {
+      console.warn('Events API returned non-array response:', payload);
+      return [];
+    }
+
+    return payload;
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    throw error;
   }
-
-  return payload;
 }
 
 export async function createEventBooking(bookingPayload) {
@@ -14,6 +40,7 @@ export async function createEventBooking(bookingPayload) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify(bookingPayload),
   });
@@ -32,6 +59,7 @@ export async function updateEventStatus(eventId, status) {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ status }),
   });

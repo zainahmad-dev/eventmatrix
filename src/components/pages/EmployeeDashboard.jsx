@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BadgeDollarSign, Bell, CalendarClock, CheckSquare, ClipboardCheck, Star, UserCheck } from 'lucide-react';
 import { fetchEvents } from '../../api/events';
-import { EmployeeSectionNavbar } from './navbar/EmployeeSectionNavbar';
+import { EmployeeNavbar } from '../common/EmployeeNavbar';
 
 const formatPKR = (amount) => `PKR ${Number(amount || 0).toLocaleString('en-PK')}`;
 
@@ -84,7 +84,7 @@ export function EmployeeDashboard({ user }) {
         <p>Welcome {user?.name || 'Employee'}. Event tasks and status are synced with admin updates in realtime.</p>
       </div>
 
-      <EmployeeSectionNavbar items={sectionItems} />
+      <EmployeeNavbar items={sectionItems} />
 
       <section id="employee-overview" className="overview-grid employee-target-section" aria-label="Employee overview">
         {overview.map((item) => (

@@ -1,8 +1,14 @@
+function getAuthHeader() {
+  const token = localStorage.getItem('eventmatrix_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function generateQuotationsFromBookings(bookings) {
   const response = await fetch('/api/quotations/generate-from-bookings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ bookings }),
   });
@@ -17,7 +23,9 @@ export async function generateQuotationsFromBookings(bookings) {
 }
 
 export async function getQuotationOverview() {
-  const response = await fetch('/api/quotations/overview');
+  const response = await fetch('/api/quotations/overview', {
+    headers: getAuthHeader(),
+  });
   const payload = await response.json().catch(() => ([]));
 
   if (!response.ok) {
@@ -32,6 +40,7 @@ export async function addInvoicePayment(paymentId, amount, method = 'manual') {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ amount, method }),
   });
@@ -46,7 +55,9 @@ export async function addInvoicePayment(paymentId, amount, method = 'manual') {
 }
 
 export async function downloadInvoiceText(quotationId, fallbackName = 'invoice') {
-  const response = await fetch(`/api/quotations/download/${quotationId}`);
+  const response = await fetch(`/api/quotations/download/${quotationId}`, {
+    headers: getAuthHeader(),
+  });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));

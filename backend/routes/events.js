@@ -33,8 +33,23 @@ const toBookingShape = (eventDoc) => {
 router.get('/', async (req, res) => {
   try {
     const events = await Event.find().sort({ createdAt: -1 }).limit(100);
-    res.json(events.map(toBookingShape));
+
+    if (!events || !Array.isArray(events)) {
+      return res.json([]);
+    }
+
+    const bookings = events.map(event => {
+      try {
+        return toBookingShape(event);
+      } catch (mapError) {
+        console.error('Error mapping event to booking shape:', mapError);
+        return null;
+      }
+    }).filter(booking => booking !== null);
+
+    res.json(bookings);
   } catch (err) {
+    console.error('Error fetching events:', err);
     res.status(500).json({ error: err.message });
   }
 });

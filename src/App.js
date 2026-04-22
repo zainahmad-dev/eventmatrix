@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import './App.css';
-import { Navbar } from './components/layout/Navbar';
-import { Footer } from './components/layout/Footer';
-import { LoginPage } from './components/auth/LoginPage';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { CustomerDashboard } from './components/customer/CustomerDashboard';
-import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
+import { Navbar } from './components/common/Navbar';
+import { Footer } from './components/common/Footer';
+import { LoginPage } from './components/pages/LoginPage';
+import { AdminDashboard } from './components/pages/AdminDashboard';
+import { CustomerDashboard } from './components/pages/CustomerDashboard';
+import { EmployeeDashboard } from './components/pages/EmployeeDashboard';
 
 function getStoredUser() {
   try {
