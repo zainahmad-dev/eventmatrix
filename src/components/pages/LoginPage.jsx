@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
   Clock3,
   LoaderCircle,
   Sparkles,
 } from 'lucide-react';
-import { loginUser, signupUser } from '../../api/auth';
+import { forgotPassword, loginUser, resetPassword, signupUser } from '../../api/auth';
 
 const loginRoles = ['customer', 'employee', 'admin'];
 const employeeRoles = [
@@ -20,9 +20,24 @@ export function LoginPage({ onLoginSuccess }) {
   const [loginRole, setLoginRole] = useState('customer');
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', password: '', role: 'customer', employeeRole: 'waiter' });
+  const [forgotData, setForgotData] = useState({ email: '' });
+  const [resetData, setResetData] = useState({ token: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    if (token) {
+      setMode('reset');
+      setResetData((current) => ({
+        ...current,
+        token,
+      }));
+    }
+  }, []);
 
   const handleLoginChange = (event) => {
     const { name, value } = event.target;
@@ -38,6 +53,34 @@ export function LoginPage({ onLoginSuccess }) {
       ...current,
       [name]: value,
     }));
+  };
+
+  const handleForgotChange = (event) => {
+    const { name, value } = event.target;
+    setForgotData((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handleResetChange = (event) => {
+    const { name, value } = event.target;
+    setResetData((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const openForgotPassword = () => {
+    setMode('forgot');
+    setError('');
+    setSuccessMessage('');
+  };
+
+  const openLogin = () => {
+    setMode('login');
+    setError('');
+    setSuccessMessage('');
   };
 
   const handleSubmit = async (event) => {
@@ -62,6 +105,37 @@ export function LoginPage({ onLoginSuccess }) {
         return;
       }
 
+      if (mode === 'forgot') {
+        const response = await forgotPassword(forgotData.email);
+        setResetData({
+          email: response.email,
+          token: response.resetToken,
+          password: '',
+          confirmPassword: '',
+        });
+        setMode('reset');
+        setSuccessMessage(`${response.message} In production this token would be emailed. You can use it below now.`);
+        return;
+      }
+
+      if (mode === 'reset') {
+        if (resetData.password !== resetData.confirmPassword) {
+          setError('Passwords do not match.');
+          return;
+        }
+
+        const response = await resetPassword({
+          token: resetData.token,
+          password: resetData.password,
+        });
+
+        setMode('login');
+        setFormData({ email: resetData.email || forgotData.email, password: '' });
+        setResetData({ token: '', password: '', confirmPassword: '' });
+        setSuccessMessage(response.message);
+        return;
+      }
+
       const response = await signupUser(signupData);
       setSuccessMessage(`Account created for ${response.email}. You can now sign in.`);
       setMode('login');
@@ -80,13 +154,31 @@ export function LoginPage({ onLoginSuccess }) {
         <div className="auth-header">
           <span className="eyebrow">
             <Sparkles size={14} />
-            {mode === 'login' ? 'Secure sign in' : 'Create account'}
+            {mode === 'login'
+              ? 'Secure sign in'
+              : mode === 'signup'
+                ? 'Create account'
+                : mode === 'forgot'
+                  ? 'Recover access'
+                  : 'Reset password'}
           </span>
-          <h2>{mode === 'login' ? 'Sign in to EventMatrix' : 'Create your EventMatrix account'}</h2>
+          <h2>
+            {mode === 'login'
+              ? 'Sign in to EventMatrix'
+              : mode === 'signup'
+                ? 'Create your EventMatrix account'
+                : mode === 'forgot'
+                  ? 'Forgot your password?'
+                  : 'Set a new password'}
+          </h2>
           <p>
             {mode === 'login'
               ? 'Use your registered email and password to access your dashboard.'
-              : 'Register once and choose admin, employee, or customer during signup.'}
+              : mode === 'signup'
+                ? 'Register once and choose admin, employee, or customer during signup.'
+                : mode === 'forgot'
+                  ? 'Enter your email and generate a reset token.'
+                  : 'Use the reset token to choose a new password.'}
           </p>
         </div>
 
@@ -94,11 +186,7 @@ export function LoginPage({ onLoginSuccess }) {
           <button
             className={mode === 'login' ? 'auth-tab auth-tab--active' : 'auth-tab'}
             type="button"
-            onClick={() => {
-              setMode('login');
-              setError('');
-              setSuccessMessage('');
-            }}
+            onClick={openLogin}
           >
             Login
           </button>
@@ -138,6 +226,71 @@ export function LoginPage({ onLoginSuccess }) {
         {successMessage ? <div className="success-banner" role="status">{successMessage}</div> : null}
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          {mode === 'forgot' ? (
+            <div className="field-group">
+              <label className="field-label" htmlFor="forgot-email">Email address</label>
+              <input
+                className="field-input"
+                id="forgot-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={forgotData.email}
+                onChange={handleForgotChange}
+                required
+              />
+            </div>
+          ) : null}
+
+          {mode === 'reset' ? (
+            <>
+              <div className="field-group">
+                <label className="field-label" htmlFor="reset-token">Reset token</label>
+                <input
+                  className="field-input"
+                  id="reset-token"
+                  name="token"
+                  type="text"
+                  placeholder="Paste the token here"
+                  value={resetData.token}
+                  onChange={handleResetChange}
+                  required
+                />
+              </div>
+
+              <div className="field-group">
+                <label className="field-label" htmlFor="reset-password">New password</label>
+                <input
+                  className="field-input"
+                  id="reset-password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Create a new password"
+                  value={resetData.password}
+                  onChange={handleResetChange}
+                  required
+                />
+              </div>
+
+              <div className="field-group">
+                <label className="field-label" htmlFor="reset-confirm-password">Confirm new password</label>
+                <input
+                  className="field-input"
+                  id="reset-confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Confirm your new password"
+                  value={resetData.confirmPassword}
+                  onChange={handleResetChange}
+                  required
+                />
+              </div>
+            </>
+          ) : null}
+
           {mode === 'signup' ? (
             <div className="field-group">
               <label className="field-label" htmlFor="name">Full name</label>
@@ -193,47 +346,90 @@ export function LoginPage({ onLoginSuccess }) {
           ) : null}
 
           <div className="field-group">
-            <label className="field-label" htmlFor={mode === 'login' ? 'email' : 'signup-email'}>Email address</label>
-            <input
-              className="field-input"
-              id={mode === 'login' ? 'email' : 'signup-email'}
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={mode === 'login' ? formData.email : signupData.email}
-              onChange={mode === 'login' ? handleLoginChange : handleSignupChange}
-              required
-            />
+            {mode === 'login' ? (
+              <>
+                <label className="field-label" htmlFor="email">Email address</label>
+                <input
+                  className="field-input"
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleLoginChange}
+                  required
+                />
+              </>
+            ) : mode === 'signup' ? (
+              <>
+                <label className="field-label" htmlFor="signup-email">Email address</label>
+                <input
+                  className="field-input"
+                  id="signup-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={signupData.email}
+                  onChange={handleSignupChange}
+                  required
+                />
+              </>
+            ) : null}
           </div>
 
-          <div className="field-group">
-            <div className="field-row">
-              <label className="field-label" htmlFor={mode === 'login' ? 'password' : 'signup-password'}>Password</label>
-              {mode === 'signup' ? <span className="field-note">Minimize password reuse</span> : null}
+          {mode === 'login' || mode === 'signup' ? (
+            <div className="field-group">
+              <div className="field-row">
+                <label className="field-label" htmlFor={mode === 'login' ? 'password' : 'signup-password'}>Password</label>
+                {mode === 'signup' ? <span className="field-note">Minimize password reuse</span> : null}
+              </div>
+              <input
+                className="field-input"
+                id={mode === 'login' ? 'password' : 'signup-password'}
+                name="password"
+                type="password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                placeholder={mode === 'login' ? 'Enter your password' : 'Create a password'}
+                value={mode === 'login' ? formData.password : signupData.password}
+                onChange={mode === 'login' ? handleLoginChange : handleSignupChange}
+                required
+              />
+              {mode === 'login' ? (
+                <button
+                  className="secondary-action"
+                  type="button"
+                  onClick={openForgotPassword}
+                >
+                  <Clock3 size={16} />
+                  Forgot password?
+                </button>
+              ) : null}
             </div>
-            <input
-              className="field-input"
-              id={mode === 'login' ? 'password' : 'signup-password'}
-              name="password"
-              type="password"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              placeholder={mode === 'login' ? 'Enter your password' : 'Create a password'}
-              value={mode === 'login' ? formData.password : signupData.password}
-              onChange={mode === 'login' ? handleLoginChange : handleSignupChange}
-              required
-            />
-          </div>
+          ) : null}
 
           <button className="primary-action" type="submit" disabled={loading}>
             {loading ? (
               <>
                 <LoaderCircle size={18} className="spin-icon" />
-                {mode === 'login' ? 'Signing in...' : 'Creating account...'}
+                {mode === 'login'
+                  ? 'Signing in...'
+                  : mode === 'signup'
+                    ? 'Creating account...'
+                    : mode === 'forgot'
+                      ? 'Generating token...'
+                      : 'Resetting password...'}
               </>
             ) : (
               <>
-                {mode === 'login' ? `Continue as ${loginRole.charAt(0).toUpperCase() + loginRole.slice(1)}` : 'Create account'}
+                {mode === 'login'
+                  ? `Continue as ${loginRole.charAt(0).toUpperCase() + loginRole.slice(1)}`
+                  : mode === 'signup'
+                    ? 'Create account'
+                    : mode === 'forgot'
+                      ? 'Generate reset token'
+                      : 'Reset password'}
                 <ArrowRight size={18} />
               </>
             )}
@@ -244,14 +440,22 @@ export function LoginPage({ onLoginSuccess }) {
               className="secondary-action"
               type="button"
               disabled={loading}
-              onClick={() => {
-                setMode('login');
-                setError('');
-                setSuccessMessage('');
-              }}
+              onClick={openLogin}
             >
               <Clock3 size={16} />
               I already have an account
+            </button>
+          ) : null}
+
+          {mode === 'forgot' || mode === 'reset' ? (
+            <button
+              className="secondary-action"
+              type="button"
+              disabled={loading}
+              onClick={openLogin}
+            >
+              <Clock3 size={16} />
+              Back to login
             </button>
           ) : null}
         </form>

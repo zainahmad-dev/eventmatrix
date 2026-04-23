@@ -21,11 +21,7 @@ import { useBookingMetrics, useOverviewCards, useEventManagementSummary } from '
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Format currency to PKR format
- * @param {number} amount - Amount to format
- * @returns {string} - Formatted currency string
- */
+
 const formatPKR = (amount) =>
   `PKR ${Number(amount || 0).toLocaleString('en-PK', {
     minimumFractionDigits: 2,

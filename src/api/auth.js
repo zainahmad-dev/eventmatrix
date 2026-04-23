@@ -33,3 +33,39 @@ export async function signupUser(credentials) {
 
   return payload;
 }
+
+export async function forgotPassword(email) {
+  const response = await fetch('/api/auth/forgot-password', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Unable to start password recovery right now.');
+  }
+
+  return payload;
+}
+
+export async function resetPassword(credentials) {
+  const response = await fetch('/api/auth/reset-password', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(credentials),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Unable to reset the password right now.');
+  }
+
+  return payload;
+}

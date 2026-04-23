@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 
 const WORKFORCE_CONFIG = {
@@ -12,6 +13,14 @@ const WORKFORCE_CONFIG = {
 };
 
 const MAX_EMPLOYEES = 15;
+
+function createResetToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
@@ -56,6 +65,57 @@ router.post('/signup', async (req, res) => {
       employeeRole: user.employeeRole,
       salary: user.salary,
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'No account found for this email' });
+
+    const resetToken = createResetToken();
+    user.resetPasswordToken = hashResetToken(resetToken);
+    user.resetPasswordExpires = new Date(Date.now() + 30 * 60 * 1000);
+    await user.save();
+
+    res.json({
+      message: 'Password reset token generated successfully.',
+      email: user.email,
+      resetToken,
+      resetUrl: `/reset-password?token=${resetToken}`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token and password are required' });
+
+    const user = await User.findOne({
+      resetPasswordToken: hashResetToken(token),
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.json({ message: 'Password updated successfully. You can now sign in.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
