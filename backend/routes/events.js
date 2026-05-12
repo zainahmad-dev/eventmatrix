@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const authenticateToken = require('../middleware/auth');
+const { authorizeAdmin } = require('../middleware/authorize');
 
 const toBookingShape = (eventDoc) => {
   const total = Number(eventDoc.totalAmount || 0);
@@ -29,7 +31,7 @@ const toBookingShape = (eventDoc) => {
   };
 };
 
-// GET /api/events - list bookings/events
+// GET /api/events - list bookings/events (accessible to everyone, but returns all events)
 router.get('/', async (req, res) => {
   try {
     const events = await Event.find().sort({ createdAt: -1 }).limit(100);
@@ -50,6 +52,31 @@ router.get('/', async (req, res) => {
     res.json(bookings);
   } catch (err) {
     console.error('Error fetching events:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/events/admin/all - admin-only: get ALL events with full details
+router.get('/admin/all', authenticateToken, authorizeAdmin, async (req, res) => {
+  try {
+    const events = await Event.find().sort({ createdAt: -1 }).limit(100);
+
+    if (!events || !Array.isArray(events)) {
+      return res.json([]);
+    }
+
+    const bookings = events.map(event => {
+      try {
+        return toBookingShape(event);
+      } catch (mapError) {
+        console.error('Error mapping event to booking shape:', mapError);
+        return null;
+      }
+    }).filter(booking => booking !== null);
+
+    res.json(bookings);
+  } catch (err) {
+    console.error('Error fetching events for admin:', err);
     res.status(500).json({ error: err.message });
   }
 });

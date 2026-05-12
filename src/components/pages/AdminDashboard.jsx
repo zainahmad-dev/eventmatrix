@@ -6,7 +6,7 @@ import {
   Gauge,
   TrendingUp,
 } from 'lucide-react';
-import { fetchEvents, updateEventStatus } from '../../api/events';
+import { fetchEvents, fetchAllEventsAdmin, updateEventStatus } from '../../api/events';
 import { InventoryPanel } from '../admin/Inventory';
 import { EmployeeManagementPanel } from '../admin/EmployeeManagement';
 import { QuotationInvoicesPanel } from '../admin/QuotationInvoicesPanel';
@@ -119,10 +119,10 @@ export function AdminDashboard({ user }) {
    */
   const loadBookings = async () => {
     try {
-      const data = await fetchEvents();
+      const data = await fetchAllEventsAdmin();
 
       if (!Array.isArray(data)) {
-        console.warn('Expected array from fetchEvents, got:', typeof data, data);
+        console.warn('Expected array from fetchAllEventsAdmin, got:', typeof data, data);
         setBookings([]);
         setEventSectionMessage('Error: Invalid response format from server.');
         return;
@@ -313,7 +313,12 @@ export function AdminDashboard({ user }) {
         <QuotationInvoicesPanel bookings={bookings} />
       </div>
 
-      {/* SECTION 7: STOCKS & INVENTORY MANAGEMENT */}
+      {/* SECTION 7: EQUIPMENT RENTAL & INVENTORY */}
+      <div id="admin-equipment" className="admin-target-section">
+        <EquipmentInventoryDashboard />
+      </div>
+
+      {/* SECTION 8: STOCKS & INVENTORY MANAGEMENT */}
       <div id="admin-stocks" className="admin-target-section">
         <StocksSection />
       </div>

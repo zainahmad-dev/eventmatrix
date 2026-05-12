@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { createEventBooking, fetchEvents } from "../../api/events";
 import { CustomerNavbar } from "../common/CustomerNavbar";
+import { EquipmentBrowser } from "../customer/EquipmentBrowser";
+import { EquipmentCart } from "../customer/EquipmentCart";
 
 const formatPKR = (amount) =>
   `PKR ${Number(amount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -76,9 +78,11 @@ export function CustomerDashboard({ user }) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [bookings, setBookings] = useState([]);
+  const [equipmentCart, setEquipmentCart] = useState([]);
   const sectionItems = [
     { id: "customer-overview", label: "Overview" },
     { id: "customer-booking-interface", label: "Booking Interface" },
+    { id: "customer-equipment", label: "Equipment Rental" },
     { id: "customer-payment-interface", label: "Payment Interface" },
     { id: "customer-notifications", label: "Notifications" },
     { id: "customer-booking-snapshot", label: "Booking Snapshot" },
@@ -181,6 +185,9 @@ export function CustomerDashboard({ user }) {
       return;
     }
 
+    const equipmentTotal = equipmentCart.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+    const bookingTotal = calculator.subtotal + equipmentTotal;
+
     const booking = {
       customerName: user?.name || "Customer",
       customerEmail: user?.email || "unknown@local",
@@ -193,9 +200,10 @@ export function CustomerDashboard({ user }) {
       decoration: form.decoration,
       lighting: form.lighting,
       cateringSupport: form.cateringSupport,
-      total: calculator.subtotal,
-      advance: calculator.advance,
-      remaining: calculator.remaining,
+      equipment: equipmentCart,
+      total: bookingTotal,
+      advance: bookingTotal * 0.3,
+      remaining: bookingTotal * 0.7,
       status: "pending",
     };
 
@@ -206,9 +214,34 @@ export function CustomerDashboard({ user }) {
         "Booking submitted successfully. Admin can now review it in real time.",
       );
       setForm((current) => ({ ...defaultForm, eventDate: current.eventDate }));
+      setEquipmentCart([]);
     } catch (error) {
       setSubmitError(error.message);
     }
+  };
+
+  const handleAddEquipmentToCart = (equipment) => {
+    const existingIndex = equipmentCart.findIndex((item) => item.id === equipment.id);
+
+    if (existingIndex >= 0) {
+      const updatedCart = [...equipmentCart];
+      updatedCart[existingIndex].quantity += equipment.quantity;
+      updatedCart[existingIndex].totalPrice = updatedCart[existingIndex].pricePerDay * updatedCart[existingIndex].quantity;
+      setEquipmentCart(updatedCart);
+    } else {
+      setEquipmentCart([...equipmentCart, equipment]);
+    }
+  };
+
+  const handleRemoveEquipment = (index) => {
+    setEquipmentCart(equipmentCart.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateEquipmentQuantity = (index, quantity) => {
+    const updatedCart = [...equipmentCart];
+    updatedCart[index].quantity = quantity;
+    updatedCart[index].totalPrice = updatedCart[index].pricePerDay * quantity;
+    setEquipmentCart(updatedCart);
   };
 
   return (
@@ -393,6 +426,32 @@ export function CustomerDashboard({ user }) {
             </button>
           </form>
         </article>
+
+        {/* Equipment Rental Section */}
+        <article
+          id="customer-equipment"
+          className="customer-target-section"
+          style={{ marginTop: "2rem" }}
+        >
+          {form.eventDate ? (
+            <>
+              <EquipmentBrowser
+                eventDate={form.eventDate}
+                onAddToCart={handleAddEquipmentToCart}
+              />
+              <EquipmentCart
+                items={equipmentCart}
+                onRemove={handleRemoveEquipment}
+                onUpdateQuantity={handleUpdateEquipmentQuantity}
+              />
+            </>
+          ) : (
+            <div className="empty-state">
+              <p>📅 Please select an event date first to browse available equipment.</p>
+            </div>
+          )}
+        </article>
+
         <div
           id="customer-payment-interface"
           className="customer-target-section"

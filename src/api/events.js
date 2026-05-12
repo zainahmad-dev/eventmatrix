@@ -35,6 +35,39 @@ export async function fetchEvents() {
   }
 }
 
+// Admin-specific endpoint to fetch ALL events
+export async function fetchAllEventsAdmin() {
+  try {
+    const response = await fetch('/api/events/admin/all', {
+      headers: getAuthHeader(),
+    });
+    let payload = [];
+
+    try {
+      payload = await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse admin events response:', parseError);
+      payload = [];
+    }
+
+    if (!response.ok) {
+      const errorMsg = (payload && payload.error) || 'Unable to fetch events for admin.';
+      throw new Error(errorMsg);
+    }
+
+    // Ensure payload is always an array
+    if (!Array.isArray(payload)) {
+      console.warn('Admin events API returned non-array response:', payload);
+      return [];
+    }
+
+    return payload;
+  } catch (error) {
+    console.error('Error fetching admin events:', error);
+    throw error;
+  }
+}
+
 export async function createEventBooking(bookingPayload) {
   const response = await fetch('/api/events', {
     method: 'POST',

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { fetchEquipment, fetchCategories, updateEquipment, updateEquipmentMaintenance, deleteEquipment, initializeEquipmentDatabase } from '../../api/equipment';
+import { fetchEquipment, fetchCategories, createEquipment, updateEquipment, updateEquipmentMaintenance, deleteEquipment, initializeEquipmentDatabase } from '../../api/equipment';
 
 
 export function EquipmentInventoryDashboard() {
@@ -298,11 +298,18 @@ function EquipmentFormModal({ item, categories, onClose, onSubmit }) {
         throw new Error('Name and category are required');
       }
 
+      // Extract category ID if it's an object
+      const dataToSend = {
+        ...formData,
+        category: formData.category?.id || formData.category,
+      };
+
       if (item) {
-        await updateEquipment(item.id, formData);
+        // Edit existing item
+        await updateEquipment(item.id, dataToSend);
       } else {
-        // Note: POST is handled by frontend, would need createEquipment function
-        await updateEquipment(null, formData); // This would be createEquipment in production
+        // Create new item
+        await createEquipment(dataToSend);
       }
 
       await onSubmit();
