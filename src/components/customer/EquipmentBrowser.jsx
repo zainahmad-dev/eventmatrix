@@ -110,7 +110,10 @@ export function EquipmentBrowser({ eventDate, onAddToCart }) {
                     handleQuantityChange(
                       item.id,
                       event.target.value,
-                      Math.max(Number(item.availableQuantity || 1), DEFAULT_QUANTITY),
+                      Math.max(
+                        Number(item.availableQuantity || DEFAULT_QUANTITY),
+                        DEFAULT_QUANTITY,
+                      ),
                     )
                   }
                   aria-label={`${item.name} quantity`}
