@@ -6,7 +6,7 @@ import {
   Gauge,
   TrendingUp,
 } from 'lucide-react';
-import { fetchEvents, fetchAllEventsAdmin, updateEventStatus } from '../../api/events';
+import { fetchAllEventsAdmin, updateEventStatus } from '../../api/events';
 import { InventoryPanel } from '../admin/Inventory';
 import { EmployeeManagementPanel } from '../admin/EmployeeManagement';
 import { QuotationInvoicesPanel } from '../admin/QuotationInvoicesPanel';

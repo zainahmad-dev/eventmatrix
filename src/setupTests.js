@@ -1,1 +1,1 @@
-// Keep the test setup minimal for this starter screen.
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;

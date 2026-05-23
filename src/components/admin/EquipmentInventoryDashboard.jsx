@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { fetchEquipment, fetchCategories, createEquipment, updateEquipment, updateEquipmentMaintenance, deleteEquipment, initializeEquipmentDatabase } from '../../api/equipment';
 
 
@@ -14,7 +14,7 @@ export function EquipmentInventoryDashboard() {
   const [selectedItem, setSelectedItem] = useState(null);
 
   // Load equipment and categories
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -29,10 +29,10 @@ export function EquipmentInventoryDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Initialize database on first load
-  const initDatabase = async () => {
+  const initDatabase = useCallback(async () => {
     try {
       await initializeEquipmentDatabase();
       await loadData();
@@ -40,13 +40,13 @@ export function EquipmentInventoryDashboard() {
       console.error('Database initialization skipped (already exists)');
       await loadData();
     }
-  };
+  }, [loadData]);
 
   useEffect(() => {
     initDatabase();
     const timer = setInterval(loadData, 30000); // Refresh every 30 seconds
     return () => clearInterval(timer);
-  }, []);
+  }, [initDatabase, loadData]);
 
   // Filter equipment
   const filteredEquipment = useMemo(() => {
