@@ -1,8 +1,4 @@
-const formatPKR = (amount) =>
-  `PKR ${Number(amount || 0).toLocaleString("en-PK", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+import { formatPKR } from "./formatPKR";
 
 export function EquipmentCart({ items, onRemove, onUpdateQuantity }) {
   const grandTotal = items.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0);

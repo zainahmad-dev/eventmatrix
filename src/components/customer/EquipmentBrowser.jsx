@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchEquipment } from "../../api/equipment";
-
-const formatPKR = (amount) =>
-  `PKR ${Number(amount || 0).toLocaleString("en-PK", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+import { formatPKR } from "./formatPKR";
 
 export function EquipmentBrowser({ eventDate, onAddToCart }) {
   const [items, setItems] = useState([]);
