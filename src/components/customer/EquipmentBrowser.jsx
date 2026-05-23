@@ -90,10 +90,7 @@ export function EquipmentBrowser({ eventDate, onAddToCart }) {
         <ul className="dashboard-list">
           {equipment.map((item) => {
             const available = Number(item.availableQuantity) || 0;
-            const quantity = Math.min(
-              available || 1,
-              Math.max(1, Number(quantities[item.id]) || 1),
-            );
+            const quantity = Math.max(1, Number(quantities[item.id]) || 1);
 
             return (
               <li key={item.id}>
@@ -104,7 +101,7 @@ export function EquipmentBrowser({ eventDate, onAddToCart }) {
                   <input
                     type="number"
                     min="1"
-                    max={available || 1}
+                    max={available}
                     value={quantity}
                     onChange={(event) =>
                       handleQuantityChange(item.id, event.target.value)
