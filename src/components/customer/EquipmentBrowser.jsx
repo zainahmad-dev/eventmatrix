@@ -63,7 +63,10 @@ export function EquipmentBrowser({ eventDate, onAddToCart }) {
       10,
     );
     const safeQuantity = Number.isFinite(requestedQuantity)
-      ? Math.min(Math.max(requestedQuantity, 1), Number(item.availableQuantity || 1))
+      ? Math.min(
+          Math.max(requestedQuantity, DEFAULT_QUANTITY),
+          Number(item.availableQuantity || DEFAULT_QUANTITY),
+        )
       : DEFAULT_QUANTITY;
 
     onAddToCart({
@@ -101,7 +104,7 @@ export function EquipmentBrowser({ eventDate, onAddToCart }) {
                 <input
                   type="number"
                   min="1"
-                  max={String(Math.max(Number(item.availableQuantity || 1), 1))}
+                  max={String(Number(item.availableQuantity || DEFAULT_QUANTITY))}
                   value={quantities[item.id] ?? DEFAULT_QUANTITY}
                   onChange={(event) =>
                     handleQuantityChange(
