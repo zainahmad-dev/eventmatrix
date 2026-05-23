@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchEquipment } from "../../api/equipment";
 import { formatPKR } from "./formatPKR";
 
+const DEFAULT_QUANTITY = 1;
+
 export function EquipmentBrowser({ eventDate, onAddToCart }) {
   const [items, setItems] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -43,18 +45,26 @@ export function EquipmentBrowser({ eventDate, onAddToCart }) {
     };
   }, [eventDate]);
 
-  const handleQuantityChange = (itemId, value) => {
+  const handleQuantityChange = (itemId, value, maxQuantity) => {
+    const parsed = Number.parseInt(value, 10);
+    const nextQuantity = Number.isFinite(parsed)
+      ? Math.min(Math.max(parsed, DEFAULT_QUANTITY), maxQuantity)
+      : DEFAULT_QUANTITY;
+
     setQuantities((current) => ({
       ...current,
-      [itemId]: value,
+      [itemId]: nextQuantity,
     }));
   };
 
   const handleAdd = (item) => {
-    const requestedQuantity = Number.parseInt(quantities[item.id] ?? "1", 10);
+    const requestedQuantity = Number.parseInt(
+      quantities[item.id] ?? DEFAULT_QUANTITY,
+      10,
+    );
     const safeQuantity = Number.isFinite(requestedQuantity)
       ? Math.min(Math.max(requestedQuantity, 1), Number(item.availableQuantity || 1))
-      : 1;
+      : DEFAULT_QUANTITY;
 
     onAddToCart({
       id: item.id,
@@ -92,9 +102,13 @@ export function EquipmentBrowser({ eventDate, onAddToCart }) {
                   type="number"
                   min="1"
                   max={String(Math.max(Number(item.availableQuantity || 1), 1))}
-                  value={quantities[item.id] ?? "1"}
+                  value={quantities[item.id] ?? DEFAULT_QUANTITY}
                   onChange={(event) =>
-                    handleQuantityChange(item.id, event.target.value)
+                    handleQuantityChange(
+                      item.id,
+                      event.target.value,
+                      Math.max(Number(item.availableQuantity || 1), DEFAULT_QUANTITY),
+                    )
                   }
                   aria-label={`${item.name} quantity`}
                 />
