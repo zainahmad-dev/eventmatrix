@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
-import { fetchAllInventory, fetchInventoryStats, markItemAsUsed, restockItem, deleteInventoryItem } from '../../api/inventory';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import { fetchAllInventory, fetchInventoryStats, markItemAsUsed, restockItem } from '../../api/inventory';
 
 export function StocksSection() {
   // ========================================================================
@@ -11,13 +11,12 @@ export function StocksSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [expandedItem, setExpandedItem] = useState(null);
 
   // ========================================================================
   // DATA FETCHING
   // ========================================================================
 
-  const loadInventory = async () => {
+  const loadInventory = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -30,16 +29,16 @@ export function StocksSection() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const data = await fetchInventoryStats();
       setStats(data);
     } catch (err) {
       console.error('Error loading stats:', err);
     }
-  };
+  }, []);
 
   // ========================================================================
   // LIFECYCLE
@@ -53,7 +52,7 @@ export function StocksSection() {
       loadStats();
     }, 10000); // Refresh every 10 seconds
     return () => clearInterval(timer);
-  }, [selectedCategory]);
+  }, [loadInventory, loadStats]);
 
   // ========================================================================
   // FILTERED DATA
