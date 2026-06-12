@@ -1,5 +1,37 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, ChevronDown, CircleDollarSign, Package, Plus, TriangleAlert, Wrench } from 'lucide-react';
 import { fetchEquipment, fetchCategories, createEquipment, updateEquipment, updateEquipmentMaintenance, deleteEquipment, initializeEquipmentDatabase } from '../../api/equipment';
+
+const CATEGORY_OPTIONS = [
+  { value: 'all', label: 'All Categories', emoji: '' },
+  { value: 'decoration', label: 'Decoration', emoji: '🎨' },
+  { value: 'lighting', label: 'Lighting', emoji: '💡' },
+  { value: 'catering-equipment', label: 'Catering Equipment', emoji: '🍽️' },
+  { value: 'furniture', label: 'Furniture', emoji: '🪑' },
+  { value: 'sound-audio', label: 'Sound & Audio', emoji: '🔊' },
+  { value: 'media-production', label: 'Media & Production', emoji: '🎥' },
+  { value: 'general-supplies', label: 'General Supplies', emoji: '📦' },
+];
+
+const CONDITION_OPTIONS = [
+  { value: 'all', label: 'All Conditions', textClass: 'text-gray-500', dotClass: '' },
+  { value: 'good', label: 'Good', icon: '✓', textClass: 'text-green-700', dotClass: 'bg-green-600', selectedBgClass: 'bg-green-50' },
+  { value: 'under-maintenance', label: 'Maintenance', icon: '⚙', textClass: 'text-amber-600', dotClass: 'bg-amber-500', selectedBgClass: 'bg-amber-50' },
+  { value: 'damaged', label: 'Damaged', icon: '✕', textClass: 'text-red-700', dotClass: 'bg-red-600', selectedBgClass: 'bg-red-50' },
+];
+
+const normalizeCategoryValue = (rawValue = '') => {
+  const value = String(rawValue).trim().toLowerCase();
+  if (!value) return '';
+  if (value.includes('decoration')) return 'decoration';
+  if (value.includes('lighting')) return 'lighting';
+  if (value.includes('catering')) return 'catering-equipment';
+  if (value.includes('furniture')) return 'furniture';
+  if (value.includes('sound') || value.includes('audio')) return 'sound-audio';
+  if (value.includes('media') || value.includes('production')) return 'media-production';
+  if (value.includes('general') || value.includes('supplies')) return 'general-supplies';
+  return value;
+};
 
 
 export function EquipmentInventoryDashboard() {
@@ -51,7 +83,11 @@ export function EquipmentInventoryDashboard() {
   // Filter equipment
   const filteredEquipment = useMemo(() => {
     return equipment.filter((item) => {
-      if (selectedCategory !== 'all' && item.category?.id !== selectedCategory) return false;
+      if (selectedCategory !== 'all') {
+        const categoryName = normalizeCategoryValue(item.category?.name);
+        const categoryId = normalizeCategoryValue(item.category?.id);
+        if (categoryName !== selectedCategory && categoryId !== selectedCategory) return false;
+      }
       if (filterCondition !== 'all' && item.condition !== filterCondition) return false;
       return true;
     });
@@ -110,26 +146,41 @@ export function EquipmentInventoryDashboard() {
       </div>
 
       {/* STATS */}
-      <div className="equipment-stats-grid">
-        <div className="stat-card">
-          <div className="stat-label">Total Items</div>
-          <div className="stat-value">{stats.total}</div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <Package size={14} />
+            <span>Total Items</span>
+          </div>
+          <div className="text-2xl font-semibold text-gray-800">{stats.total}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Total Value</div>
-          <div className="stat-value">₨{Number(stats.totalValue || 0).toLocaleString('en-PK')}</div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <CircleDollarSign size={14} />
+            <span>Total Value</span>
+          </div>
+          <div className="text-2xl font-semibold text-teal-700">₨{Number(stats.totalValue || 0).toLocaleString('en-PK')}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Good</div>
-          <div className="stat-value good">{stats.good}</div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <CheckCircle2 size={14} />
+            <span>Good</span>
+          </div>
+          <div className="text-2xl font-semibold text-green-700">{stats.good}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Under Maintenance</div>
-          <div className="stat-value maintenance">{stats.maintenance}</div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <Wrench size={14} />
+            <span>Under Maintenance</span>
+          </div>
+          <div className="text-2xl font-semibold text-amber-600">{stats.maintenance}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Damaged</div>
-          <div className="stat-value damaged">{stats.damaged}</div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <TriangleAlert size={14} />
+            <span>Damaged</span>
+          </div>
+          <div className="text-2xl font-semibold text-red-700">{stats.damaged}</div>
         </div>
       </div>
 
@@ -142,26 +193,15 @@ export function EquipmentInventoryDashboard() {
       )}
 
       {/* FILTERS & ACTIONS */}
-      <div className="equipment-controls">
-        <div className="filters">
-          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-            <option value="all">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
-              </option>
-            ))}
-          </select>
+      <div className="mt-4 flex items-center gap-3">
+        <CategoryDropdown value={selectedCategory} onChange={setSelectedCategory} />
+        <ConditionDropdown value={filterCondition} onChange={setFilterCondition} />
 
-          <select value={filterCondition} onChange={(e) => setFilterCondition(e.target.value)}>
-            <option value="all">All Conditions</option>
-            <option value="good">✓ Good</option>
-            <option value="under-maintenance">⚙ Maintenance</option>
-            <option value="damaged">✕ Damaged</option>
-          </select>
-        </div>
-
-        <button className="btn-primary" onClick={() => setShowForm(true)}>
+        <button
+          className="ml-auto inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+          onClick={() => setShowForm(true)}
+        >
+          <Plus size={16} />
           + Add Equipment
         </button>
       </div>
@@ -259,6 +299,122 @@ export function EquipmentInventoryDashboard() {
         !loading && <div className="equipment-empty">📭 No equipment items. Add items to get started.</div>
       )}
     </section>
+  );
+}
+
+function CategoryDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const selected = CATEGORY_OPTIONS.find((option) => option.value === value) || CATEGORY_OPTIONS[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!dropdownRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} className="relative min-w-48">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span className="flex items-center gap-2 text-gray-700">
+          {selected.emoji ? <span>{selected.emoji}</span> : null}
+          {selected.label}
+        </span>
+        <ChevronDown size={16} className="text-gray-500" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white py-1 shadow-md">
+          {CATEGORY_OPTIONS.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 ${
+                  isSelected ? 'bg-teal-50 font-medium text-teal-700' : 'text-gray-700'
+                }`}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                {option.emoji ? <span>{option.emoji}</span> : null}
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConditionDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const selected = CONDITION_OPTIONS.find((option) => option.value === value) || CONDITION_OPTIONS[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!dropdownRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} className="relative min-w-48">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span className={`flex items-center gap-2 ${selected.textClass}`}>
+          {selected.dotClass ? <span className={`h-2 w-2 rounded-full ${selected.dotClass}`} /> : null}
+          {selected.icon ? <span>{selected.icon}</span> : null}
+          {selected.label}
+        </span>
+        <ChevronDown size={16} className="text-gray-500" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white py-1 shadow-md">
+          {CONDITION_OPTIONS.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 ${
+                  isSelected ? `${option.selectedBgClass || 'bg-gray-50'} font-medium` : ''
+                } ${option.textClass}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                {option.dotClass ? <span className={`h-2 w-2 rounded-full ${option.dotClass}`} /> : null}
+                {option.icon ? <span>{option.icon}</span> : null}
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
