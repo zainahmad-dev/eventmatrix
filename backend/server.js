@@ -32,16 +32,21 @@ require('./models/EquipmentBooking');
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/eventmatrix';
 
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(async () => {
+async function startServer() {
+  try {
+    await mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log('Connected to MongoDB');
     const modelNames = ['User', 'Event', 'Employee', 'Inventory', 'Payment', 'Quotation', 'AdminActionLog', 'Category', 'EquipmentItem', 'EquipmentBooking'];
     await Promise.all(modelNames.map(async (name) => {
       await mongoose.model(name).createCollection();
     }));
     console.log('All collections initialized');
-  })
-  .catch(err => console.error('MongoDB connection error:', err.message));
+    app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  }
+}
 
 app.get('/', (req, res) => res.send('EventMatrix backend running'));
 
@@ -70,4 +75,4 @@ app.post('/test-user', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+startServer();

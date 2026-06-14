@@ -18,13 +18,18 @@ const AdminActionLog = require('../models/AdminActionLog');
  * Format equipment item for response
  */
 const toEquipmentShape = (doc) => {
+  const categoryDoc = doc.category && doc.category._id ? doc.category : null;
+  const categoryId = categoryDoc ? String(categoryDoc._id) : String(doc.category || '');
+  const categoryName = categoryDoc ? categoryDoc.name : (typeof doc.category === 'string' ? doc.category : '');
+  const categoryIcon = categoryDoc ? categoryDoc.icon : '📦';
+
   return {
     id: String(doc._id),
     name: doc.name,
     category: {
-      id: String(doc.category._id) || String(doc.category),
-      name: doc.category.name || doc.category,
-      icon: doc.category.icon || '📦',
+      id: categoryId,
+      name: categoryName,
+      icon: categoryIcon,
     },
     description: doc.description,
     images: doc.images || [],
@@ -39,6 +44,19 @@ const toEquipmentShape = (doc) => {
   };
 };
 
+const findCategoryByIdOrName = async (categoryValue) => {
+  if (!categoryValue) {
+    return null;
+  }
+
+  const query = [{ name: categoryValue }];
+  if (mongoose.isValidObjectId(categoryValue)) {
+    query.unshift({ _id: categoryValue });
+  }
+
+  return Category.findOne({ $or: query });
+};
+
 // ============================================================================
 // SEED ENDPOINT - Initialize database with categories and items
 // ============================================================================
@@ -47,7 +65,7 @@ const toEquipmentShape = (doc) => {
  * POST /api/equipment/init - Seed database with initial data
  * Only works if database is empty
  */
-router.post('/init', async (req, res) => {
+router.post('/init', authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     // Check if data already exists
     const existingCategories = await Category.countDocuments();
@@ -110,10 +128,7 @@ router.get('/', async (req, res) => {
     const query = {};
 
     if (category) {
-      // Find category by ID or name
-      const cat = await Category.findOne({
-        $or: [{ _id: category }, { name: category }],
-      });
+      const cat = await findCategoryByIdOrName(category);
       if (cat) query.category = cat._id;
     }
 
@@ -166,44 +181,17 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/equipment/:id - Get single equipment item with availability
- * Query params:
- *   - startDate & endDate: Check availability for specific dates
- */
-router.get('/:id', async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-
-    const item = await EquipmentItem.findById(req.params.id).populate('category');
-
-    if (!item) {
-      return res.status(404).json({ error: 'Equipment item not found.' });
-    }
-
-    let formattedItem = toEquipmentShape(item);
-
-    // Check availability for date range if provided
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const available = await item.getAvailabilityForDateRange(start, end);
-      formattedItem.availableQuantity = available;
-      formattedItem.isAvailable = available > 0;
-    }
-
-    res.json(formattedItem);
-  } catch (err) {
-    console.error('Error fetching equipment item:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
  * GET /api/equipment/category/:categoryId - Get items by category
  */
 router.get('/category/:categoryId', async (req, res) => {
   try {
-    const items = await EquipmentItem.find({ category: req.params.categoryId })
+    const category = await findCategoryByIdOrName(req.params.categoryId);
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found.' });
+    }
+
+    const items = await EquipmentItem.find({ category: category._id })
       .populate('category')
       .sort({ createdAt: -1 });
 
@@ -267,6 +255,39 @@ router.get('/:id/availability', async (req, res) => {
     });
   } catch (err) {
     console.error('Error checking availability:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/equipment/:id - Get single equipment item with availability
+ * Query params:
+ *   - startDate & endDate: Check availability for specific dates
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const item = await EquipmentItem.findById(req.params.id).populate('category');
+
+    if (!item) {
+      return res.status(404).json({ error: 'Equipment item not found.' });
+    }
+
+    let formattedItem = toEquipmentShape(item);
+
+    // Check availability for date range if provided
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const available = await item.getAvailabilityForDateRange(start, end);
+      formattedItem.availableQuantity = available;
+      formattedItem.isAvailable = available > 0;
+    }
+
+    res.json(formattedItem);
+  } catch (err) {
+    console.error('Error fetching equipment item:', err);
     res.status(500).json({ error: err.message });
   }
 });

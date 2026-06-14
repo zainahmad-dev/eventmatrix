@@ -4,6 +4,8 @@ const Event = require('../models/Event');
 const authenticateToken = require('../middleware/auth');
 const { authorizeAdmin } = require('../middleware/authorize');
 
+router.use(authenticateToken);
+
 const toBookingShape = (eventDoc) => {
   const total = Number(eventDoc.totalAmount || 0);
   const advance = Number(eventDoc.advanceAmount || 0);
@@ -11,8 +13,9 @@ const toBookingShape = (eventDoc) => {
 
   return {
     id: String(eventDoc._id),
-    customerName: eventDoc.customerName || 'Customer',
-    customerEmail: eventDoc.customerEmail || '',
+    customerId: eventDoc.customer ? String(eventDoc.customer._id || eventDoc.customer) : null,
+    customerName: eventDoc.customerName || eventDoc.customer?.name || 'Customer',
+    customerEmail: eventDoc.customerEmail || eventDoc.customer?.email || '',
     eventType: eventDoc.eventType || eventDoc.title || 'event',
     eventDate: eventDoc.eventDate || (eventDoc.date ? new Date(eventDoc.date).toISOString().slice(0, 10) : ''),
     venue: eventDoc.venue || '',
@@ -34,7 +37,16 @@ const toBookingShape = (eventDoc) => {
 // GET /api/events - list bookings/events (accessible to everyone, but returns all events)
 router.get('/', async (req, res) => {
   try {
-    const events = await Event.find().sort({ createdAt: -1 }).limit(100);
+    const query = req.user.role === 'customer'
+      ? {
+        $or: [
+          { customer: req.user.id },
+          { customerEmail: req.user.email },
+        ],
+      }
+      : {};
+
+    const events = await Event.find(query).sort({ createdAt: -1 }).limit(100);
 
     if (!events || !Array.isArray(events)) {
       return res.json([]);
@@ -85,18 +97,26 @@ router.get('/admin/all', authenticateToken, authorizeAdmin, async (req, res) => 
 router.post('/', async (req, res) => {
   try {
     const payload = req.body || {};
+    const authenticatedCustomer = req.user?.role === 'customer' ? req.user : null;
     const seats = Number(payload.seats || 0);
-    const total = Number(payload.total || 0);
-    const advance = Number(payload.advance || 0);
-    const remaining = Number(payload.remaining || Math.max(total - advance, 0));
+    const total = Number(payload.total ?? payload.totalAmount ?? 0);
+    const advance = Number(payload.advance ?? payload.advanceAmount ?? 0);
+    const remaining = Number(payload.remaining ?? payload.remainingAmount ?? Math.max(total - advance, 0));
+    const customerEmail = payload.customerEmail || authenticatedCustomer?.email;
+    const customerName = payload.customerName || authenticatedCustomer?.name || 'Customer';
 
-    if (!payload.eventType || !payload.eventDate || !payload.venue || !payload.customerEmail) {
+    if (!payload.eventType || !payload.eventDate || !payload.venue || !customerEmail) {
       return res.status(400).json({ error: 'Missing required booking fields.' });
     }
 
+    if (!Number.isFinite(total) || total <= 0) {
+      return res.status(400).json({ error: 'Total booking amount is required.' });
+    }
+
     const event = new Event({
-      customerName: payload.customerName || 'Customer',
-      customerEmail: payload.customerEmail,
+      customer: authenticatedCustomer?._id || null,
+      customerName,
+      customerEmail,
       eventType: payload.eventType,
       eventDate: payload.eventDate,
       venue: payload.venue,
@@ -127,7 +147,7 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/events/:id/status - update booking status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const nextStatus = String(req.body?.status || '').toLowerCase();

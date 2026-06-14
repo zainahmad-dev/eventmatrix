@@ -5,6 +5,10 @@ const Inventory = require('../models/Inventory');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const AdminActionLog = require('../models/AdminActionLog');
+const authenticateToken = require('../middleware/auth');
+const { authorizeAdmin } = require('../middleware/authorize');
+
+router.use(authenticateToken, authorizeAdmin);
 
 const ACTIONS = {
   approve_pending_bookings: 'Approve Pending Bookings',
@@ -18,7 +22,7 @@ const pluralize = (count, singular, plural = `${singular}s`) => `${count} ${coun
 
 router.post('/actions/:actionType', async (req, res) => {
   const { actionType } = req.params;
-  const performedBy = req.body?.performedBy || 'admin';
+  const performedBy = req.user?.id || 'admin';
 
   if (!ACTIONS[actionType]) {
     return res.status(400).json({ error: 'Unknown action type' });
