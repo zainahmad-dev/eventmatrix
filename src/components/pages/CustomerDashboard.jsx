@@ -16,9 +16,9 @@ const formatPKR = (amount) =>
   `PKR ${Number(amount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const seatPrices = {
-  vip: 120,
-  premium: 90,
-  standard: 60,
+  vip: 1500,
+  premium: 1200,
+  standard: 800,
 };
 
 const seatLimits = {
@@ -28,9 +28,9 @@ const seatLimits = {
 };
 
 const menuAddons = {
-  basic: 0,
-  classic: 18,
-  premium: 35,
+  basic: 250,
+  classic: 500,
+  premium: 900,
 };
 
 const defaultForm = {
@@ -114,9 +114,9 @@ export function CustomerDashboard({ user }) {
     const seatCost = seatPrices[form.seatCategory] || 0;
     const menuCost = menuAddons[form.menuPlan] || 0;
     const addOnCost =
-      (form.decoration ? 450 : 0) +
-      (form.lighting ? 220 : 0) +
-      (form.cateringSupport ? 20 * Number(form.seats) : 0);
+      (form.decoration ? 15000 : 0) +
+      (form.lighting ? 8000 : 0) +
+      (form.cateringSupport ? 250 * Number(form.seats) : 0);
     const perSeat = seatCost + menuCost;
     const subtotal = Number(form.seats) * perSeat + addOnCost;
     const advance = subtotal * 0.3;

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import {
   Bell,
@@ -7,13 +7,14 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { fetchEvents, fetchAllEventsAdmin, updateEventStatus } from '../../api/events';
+import { fetchEquipment } from '../../api/equipment';
 import { EmployeeManagementPanel } from '../admin/EmployeeManagement';
 import { QuotationInvoicesPanel } from '../admin/QuotationInvoicesPanel';
 import { AdminNavbar } from '../common/AdminNavbar';
 import { EventCategoriesSection } from '../admin/EventCategoriesSection';
 import { BookingDetailsSection } from '../admin/BookingDetailsSection';
 import { EquipmentInventoryDashboard } from '../admin/EquipmentInventoryDashboard';
-import { useBookingMetrics, useOverviewCards, useEventManagementSummary } from '../admin/AdminMetricsHooks';
+import { useBookingMetrics, useOverviewCards, useEventManagementSummary, useBusinessIntelligence } from '../admin/AdminMetricsHooks';
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -72,6 +73,9 @@ export function AdminDashboard({ user }) {
   const [bookings, setBookings] = useState([]);
   const [bookingFilter, setBookingFilter] = useState('all');
   const [eventSectionMessage, setEventSectionMessage] = useState('');
+  const [totalEmployees, setTotalEmployees] = useState(null);
+  const [totalPayroll, setTotalPayroll] = useState(0);
+  const [equipmentList, setEquipmentList] = useState([]);
 
   // ========================================================================
   // FILTERED DATA
@@ -87,8 +91,31 @@ export function AdminDashboard({ user }) {
   // ========================================================================
 
   const metrics = useBookingMetrics(bookings);
-  const overview = useOverviewCards(metrics, formatPKR);
+  const overview = useOverviewCards(metrics, formatPKR, totalEmployees, equipmentList);
   const eventManagement = useEventManagementSummary(bookings);
+  const insights = useBusinessIntelligence(bookings, totalPayroll);
+
+  // Dynamic notifications derived from live data
+  const notificationsList = useMemo(() => {
+    const list = [];
+    const pendingCount = bookings.filter((b) => b.status === 'pending').length;
+    if (pendingCount > 0) list.push(`${pendingCount} booking request(s) awaiting approval.`);
+
+    const underMaintenance = equipmentList.filter((e) => e.condition === 'maintenance').length;
+    if (underMaintenance > 0) list.push(`${underMaintenance} equipment item(s) under maintenance.`);
+
+    const damaged = equipmentList.filter((e) => e.condition === 'damaged').length;
+    if (damaged > 0) list.push(`${damaged} equipment item(s) marked as damaged.`);
+
+    const lowStock = equipmentList.filter((e) => {
+      const available = e.availableQuantity ?? e.quantity ?? 1;
+      const total = e.totalQuantity ?? e.quantity ?? 1;
+      return available > 0 && available <= total * 0.2;
+    }).length;
+    if (lowStock > 0) list.push(`${lowStock} equipment item(s) running low on stock.`);
+
+    return list.length > 0 ? list : ['All systems operational. No alerts at this time.'];
+  }, [bookings, equipmentList]);
 
   // ========================================================================
   // NAVIGATION ITEMS
@@ -188,8 +215,26 @@ export function AdminDashboard({ user }) {
 
   useEffect(() => {
     loadBookings();
-    const timer = window.setInterval(loadBookings, 5000);
-    return () => window.clearInterval(timer);
+    const bookingTimer = window.setInterval(loadBookings, 5000);
+    return () => window.clearInterval(bookingTimer);
+  }, []);
+
+  /**
+   * Load all equipment from API and poll every 15 seconds
+   */
+  const loadEquipment = async () => {
+    try {
+      const data = await fetchEquipment({ adminView: true });
+      setEquipmentList(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading equipment for dashboard:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadEquipment();
+    const equipmentTimer = window.setInterval(loadEquipment, 15000);
+    return () => window.clearInterval(equipmentTimer);
   }, []);
 
   // ========================================================================
@@ -243,16 +288,10 @@ export function AdminDashboard({ user }) {
           <h3>Business Intelligence Panel</h3>
         </div>
         <p className="dashboard-copy">
-          This panel is ready for analytics integration. Connect booking, payment, and inventory APIs to populate these insights.
+          Realtime operations analytics and financial trends synced from database.
         </p>
         <div className="insight-grid">
-          {[
-            { title: 'Monthly Revenue', sentence: 'Revenue analytics will appear after transaction data is connected.', meta: 'Status: waiting for live data' },
-            { title: 'Seasonal Demand', sentence: 'Seasonal demand insights will be generated from booking history.', meta: 'Status: waiting for live data' },
-            { title: 'Cost Per Seat', sentence: 'Cost-per-seat metrics will be calculated from package and expense data.', meta: 'Status: waiting for live data' },
-            { title: 'Profit vs Expense', sentence: 'Profit-versus-expense comparison will be shown after accounting sync.', meta: 'Status: waiting for live data' },
-            { title: 'Booking Trends', sentence: 'Booking trends will be available after sufficient booking records exist.', meta: 'Status: waiting for live data' },
-          ].map((insight) => (
+          {insights.map((insight) => (
             <article className="insight-item" key={insight.title}>
               <h4>{insight.title}</h4>
               <p>{insight.sentence}</p>
@@ -273,14 +312,17 @@ export function AdminDashboard({ user }) {
         </div>
 
         <div id="admin-employee" className="admin-target-section admin-grid-slot admin-grid-slot--employee">
-          <EmployeeManagementPanel />
+          <EmployeeManagementPanel onEmployeesUpdate={(summary) => {
+            setTotalEmployees(summary?.totalEmployees);
+            setTotalPayroll(summary?.totalPayroll || 0);
+          }} />
         </div>
 
         <div id="admin-notifications" className="admin-target-section admin-grid-slot admin-grid-slot--notifications">
           <FeatureCard
             icon={<Bell size={18} />}
             title="Notifications"
-            items={['No data connected yet.']}
+            items={notificationsList}
           />
         </div>
 
@@ -290,12 +332,12 @@ export function AdminDashboard({ user }) {
             <h3>Performance Snapshot</h3>
           </div>
           <p className="dashboard-copy">
-            Live operational status will appear here after analytics integration.
+            Live operational status synced from booking and payroll records.
           </p>
           <div className="status-strip">
-            <span>Revenue: Pending Data</span>
-            <span>Expenses: Pending Data</span>
-            <span>Staffing: Pending Data</span>
+            <span>Revenue: {metrics.hasActiveBookings ? formatPKR(metrics.totalRevenue) : 'Pending Data'}</span>
+            <span>Expenses: {totalPayroll > 0 ? formatPKR(totalPayroll) : 'Pending Data'}</span>
+            <span>Staffing: {typeof totalEmployees === 'number' ? `${totalEmployees} / 15 Filled` : 'Pending Data'}</span>
           </div>
         </article>
       </section>

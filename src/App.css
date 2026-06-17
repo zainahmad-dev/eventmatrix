@@ -2100,7 +2100,170 @@
   text-align: center;
 }
 
+/* ============================================================================
+   EQUIPMENT / INVENTORY TAB STYLES
+   ============================================================================ */
+
+/* Tab Bar */
+.inv-tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0 0;
+  border-bottom: 2px solid rgba(20, 184, 166, 0.15);
+  padding-bottom: 0;
+}
+
+.inv-tab-btn {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: rgba(229, 237, 247, 0.55);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+  margin-bottom: -2px;
+}
+
+.inv-tab-btn:hover {
+  color: #14b8a6;
+  background: rgba(20, 184, 166, 0.05);
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.inv-tab-btn--active {
+  color: #14b8a6;
+  border-bottom-color: #14b8a6;
+  background: rgba(20, 184, 166, 0.08);
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+/* Panel Container */
+.inv-panel {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Stats Grid (replaces old grid-cols-2 / grid-cols-5 Tailwind classes) */
+.inv-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.inv-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.08) 0%, rgba(245, 158, 11, 0.06) 100%);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  border-radius: 0.8rem;
+  transition: all 0.25s ease;
+}
+
+.inv-stat-card:hover {
+  border-color: rgba(20, 184, 166, 0.4);
+  box-shadow: 0 6px 18px rgba(20, 184, 166, 0.12);
+  transform: translateY(-2px);
+}
+
+.inv-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(229, 237, 247, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.inv-stat-value {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #e5edf7;
+  line-height: 1;
+}
+
+.inv-stat-value--teal  { color: #14b8a6; }
+.inv-stat-value--green { color: #22c55e; }
+.inv-stat-value--amber { color: #f59e0b; }
+.inv-stat-value--red   { color: #ef4444; }
+
+/* Toolbar */
+.inv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.inv-add-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+  color: white;
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.inv-add-btn:hover {
+  box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
+  transform: translateY(-1px);
+}
+
+.inv-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  border-radius: 0.5rem;
+  color: #14b8a6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.inv-refresh-btn:hover {
+  background: rgba(20, 184, 166, 0.2);
+  border-color: rgba(20, 184, 166, 0.6);
+}
+
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .inv-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .inv-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .inv-tab-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Responsive Design */
+
 @media (max-width: 1024px) {
   .equipment-stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

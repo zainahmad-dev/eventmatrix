@@ -14,7 +14,7 @@ const formatRole = (value) => value.replace('_', ' ').replace(/\b\w/g, (char) =>
 
 const formatPKR = (amount) => `PKR ${Number(amount || 0).toLocaleString('en-PK')}`;
 
-export function EmployeeManagementPanel() {
+export function EmployeeManagementPanel({ onEmployeesUpdate }) {
   const [employees, setEmployees] = useState([]);
   const [summary, setSummary] = useState({ totalEmployees: 0, byRole: {}, totalPayroll: 0 });
   const [message, setMessage] = useState('');
@@ -24,7 +24,11 @@ export function EmployeeManagementPanel() {
     try {
       const result = await fetchEmployees();
       setEmployees(result.employees || []);
-      setSummary(result.summary || { totalEmployees: 0, byRole: {}, totalPayroll: 0 });
+      const newSummary = result.summary || { totalEmployees: 0, byRole: {}, totalPayroll: 0 };
+      setSummary(newSummary);
+      if (onEmployeesUpdate) {
+        onEmployeesUpdate(newSummary);
+      }
       setMessage('');
     } catch (error) {
       setMessage(error.message);
