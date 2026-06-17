@@ -6,43 +6,21 @@ import {
   FileText,
   HandPlatter,
   MapPin,
+  Package,
 } from "lucide-react";
 import { createEventBooking, fetchEvents } from "../../api/events";
+import { calculatePackageTotal } from "../../api/packages";
 import { CustomerNavbar } from "../common/CustomerNavbar";
-import { EquipmentBrowser } from "../customer/EquipmentBrowser";
-import { EquipmentCart } from "../customer/EquipmentCart";
+import { PackageBrowser } from "../customer/PackageBrowser";
 
 const formatPKR = (amount) =>
   `PKR ${Number(amount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const seatPrices = {
-  vip: 1500,
-  premium: 1200,
-  standard: 800,
-};
-
-const seatLimits = {
-  vip: 50,
-  premium: 120,
-  standard: 250,
-};
-
-const menuAddons = {
-  basic: 250,
-  classic: 500,
-  premium: 900,
-};
 
 const defaultForm = {
   eventType: "wedding",
   eventDate: "",
   venue: "",
-  seatCategory: "premium",
   seats: 50,
-  menuPlan: "classic",
-  decoration: true,
-  lighting: false,
-  cateringSupport: true,
 };
 
 const payments = [
@@ -75,14 +53,14 @@ function FeatureCard({ icon, title, items }) {
 
 export function CustomerDashboard({ user }) {
   const [form, setForm] = useState(defaultForm);
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [bookings, setBookings] = useState([]);
-  const [equipmentCart, setEquipmentCart] = useState([]);
   const sectionItems = [
     { id: "customer-overview", label: "Overview" },
     { id: "customer-booking-interface", label: "Booking Interface" },
-    { id: "customer-equipment", label: "Equipment Rental" },
+    { id: "customer-packages", label: "Event Packages" },
     { id: "customer-payment-interface", label: "Payment Interface" },
     { id: "customer-notifications", label: "Notifications" },
     { id: "customer-booking-snapshot", label: "Booking Snapshot" },
@@ -111,26 +89,25 @@ export function CustomerDashboard({ user }) {
   const latestBooking = myBookings[0];
 
   const calculator = useMemo(() => {
-    const seatCost = seatPrices[form.seatCategory] || 0;
-    const menuCost = menuAddons[form.menuPlan] || 0;
-    const addOnCost =
-      (form.decoration ? 15000 : 0) +
-      (form.lighting ? 8000 : 0) +
-      (form.cateringSupport ? 250 * Number(form.seats) : 0);
-    const perSeat = seatCost + menuCost;
-    const subtotal = Number(form.seats) * perSeat + addOnCost;
-    const advance = subtotal * 0.3;
-    const remaining = subtotal * 0.7;
-    const limit = seatLimits[form.seatCategory] || 0;
-    const available = Number(form.seats) <= limit;
+    if (!selectedPackage) {
+      return { subtotal: 0, advance: 0, remaining: 0, available: false, limit: 0 };
+    }
+
+    const subtotal = calculatePackageTotal(selectedPackage, form.seats);
+    const limit = selectedPackage.maxSeats || 0;
+    const minSeats = selectedPackage.minSeats || 1;
+    const available =
+      Number(form.seats) >= minSeats && Number(form.seats) <= limit;
+
     return {
       subtotal,
-      advance,
-      remaining,
+      advance: subtotal * 0.3,
+      remaining: subtotal * 0.7,
       available,
       limit,
+      minSeats,
     };
-  }, [form]);
+  }, [form.seats, selectedPackage]);
 
   const overview = useMemo(() => {
     const approvedCount = myBookings.filter(
@@ -161,15 +138,10 @@ export function CustomerDashboard({ user }) {
   }, [myBookings]);
 
   const handleChange = (event) => {
-    const { name, value, type, checked } = event.target;
+    const { name, value } = event.target;
     setForm((current) => ({
       ...current,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : name === "seats"
-            ? Number(value)
-            : value,
+      [name]: name === "seats" ? Number(value) : value,
     }));
   };
 
@@ -178,15 +150,17 @@ export function CustomerDashboard({ user }) {
     setSubmitMessage("");
     setSubmitError("");
 
-    if (!calculator.available) {
-      setSubmitError(
-        `Selected seats exceed available ${form.seatCategory.toUpperCase()} capacity (${calculator.limit}).`,
-      );
+    if (!selectedPackage) {
+      setSubmitError("Please select an event package curated by our team.");
       return;
     }
 
-    const equipmentTotal = equipmentCart.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-    const bookingTotal = calculator.subtotal + equipmentTotal;
+    if (!calculator.available) {
+      setSubmitError(
+        `Guest count must be between ${calculator.minSeats} and ${calculator.limit} for this package.`,
+      );
+      return;
+    }
 
     const booking = {
       customerName: user?.name || "Customer",
@@ -194,16 +168,11 @@ export function CustomerDashboard({ user }) {
       eventType: form.eventType,
       eventDate: form.eventDate,
       venue: form.venue,
-      seatCategory: form.seatCategory,
       seats: Number(form.seats),
-      menuPlan: form.menuPlan,
-      decoration: form.decoration,
-      lighting: form.lighting,
-      cateringSupport: form.cateringSupport,
-      equipment: equipmentCart,
-      total: bookingTotal,
-      advance: bookingTotal * 0.3,
-      remaining: bookingTotal * 0.7,
+      packageId: selectedPackage.id,
+      total: calculator.subtotal,
+      advance: calculator.advance,
+      remaining: calculator.remaining,
       status: "pending",
     };
 
@@ -211,37 +180,13 @@ export function CustomerDashboard({ user }) {
       await createEventBooking(booking);
       await loadBookings();
       setSubmitMessage(
-        "Booking submitted successfully. Admin can now review it in real time.",
+        "Booking submitted successfully. Our team will review your selected package.",
       );
       setForm((current) => ({ ...defaultForm, eventDate: current.eventDate }));
-      setEquipmentCart([]);
+      setSelectedPackage(null);
     } catch (error) {
       setSubmitError(error.message);
     }
-  };
-
-  const handleAddEquipmentToCart = (equipment) => {
-    const existingIndex = equipmentCart.findIndex((item) => item.id === equipment.id);
-
-    if (existingIndex >= 0) {
-      const updatedCart = [...equipmentCart];
-      updatedCart[existingIndex].quantity += equipment.quantity;
-      updatedCart[existingIndex].totalPrice = updatedCart[existingIndex].pricePerDay * updatedCart[existingIndex].quantity;
-      setEquipmentCart(updatedCart);
-    } else {
-      setEquipmentCart([...equipmentCart, equipment]);
-    }
-  };
-
-  const handleRemoveEquipment = (index) => {
-    setEquipmentCart(equipmentCart.filter((_, i) => i !== index));
-  };
-
-  const handleUpdateEquipmentQuantity = (index, quantity) => {
-    const updatedCart = [...equipmentCart];
-    updatedCart[index].quantity = quantity;
-    updatedCart[index].totalPrice = updatedCart[index].pricePerDay * quantity;
-    setEquipmentCart(updatedCart);
   };
 
   return (
@@ -249,8 +194,8 @@ export function CustomerDashboard({ user }) {
       <div className="dashboard-header">
         <h1>Customer Dashboard</h1>
         <p>
-          Welcome {user?.name || "Customer"}. Create a booking request, see
-          instant pricing, and submit it for admin approval.
+          Welcome {user?.name || "Customer"}. Choose a complete event package
+          prepared by our team — equipment, food, and services included.
         </p>
       </div>
 
@@ -286,7 +231,10 @@ export function CustomerDashboard({ user }) {
                   className="field-input"
                   name="eventType"
                   value={form.eventType}
-                  onChange={handleChange}
+                  onChange={(event) => {
+                    handleChange(event);
+                    setSelectedPackage(null);
+                  }}
                 >
                   <option value="wedding">Wedding</option>
                   <option value="corporate">Corporate Event</option>
@@ -320,21 +268,7 @@ export function CustomerDashboard({ user }) {
               </label>
 
               <label className="booking-field">
-                Seat category
-                <select
-                  className="field-input"
-                  name="seatCategory"
-                  value={form.seatCategory}
-                  onChange={handleChange}
-                >
-                  <option value="vip">VIP</option>
-                  <option value="premium">Premium</option>
-                  <option value="standard">Standard</option>
-                </select>
-              </label>
-
-              <label className="booking-field">
-                Number of seats
+                Number of guests
                 <input
                   className="field-input"
                   type="number"
@@ -345,74 +279,39 @@ export function CustomerDashboard({ user }) {
                   required
                 />
               </label>
+            </div>
 
-              <label className="booking-field">
-                Menu plan
-                <select
-                  className="field-input"
-                  name="menuPlan"
-                  value={form.menuPlan}
-                  onChange={handleChange}
+            {selectedPackage ? (
+              <div className="price-panel">
+                <p>
+                  Selected package: <strong>{selectedPackage.name}</strong>
+                </p>
+                <p>
+                  Total estimate:{" "}
+                  <strong>{formatPKR(calculator.subtotal)}</strong>
+                </p>
+                <p>
+                  Advance (30%): <strong>{formatPKR(calculator.advance)}</strong>
+                </p>
+                <p>
+                  Remaining (70%):{" "}
+                  <strong>{formatPKR(calculator.remaining)}</strong>
+                </p>
+                <p
+                  className={
+                    calculator.available ? "availability-ok" : "availability-bad"
+                  }
                 >
-                  <option value="basic">Basic</option>
-                  <option value="classic">Classic</option>
-                  <option value="premium">Premium</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="booking-addons">
-              <label>
-                <input
-                  type="checkbox"
-                  name="decoration"
-                  checked={form.decoration}
-                  onChange={handleChange}
-                />{" "}
-                Decoration service
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  name="lighting"
-                  checked={form.lighting}
-                  onChange={handleChange}
-                />{" "}
-                Lighting setup
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  name="cateringSupport"
-                  checked={form.cateringSupport}
-                  onChange={handleChange}
-                />{" "}
-                Catering support
-              </label>
-            </div>
-
-            <div className="price-panel">
-              <p>
-                Total estimate:{" "}
-                <strong>{formatPKR(calculator.subtotal)}</strong>
+                  {calculator.available
+                    ? `Guest count fits this package (${calculator.minSeats}–${calculator.limit}).`
+                    : `Guest count must be ${calculator.minSeats}–${calculator.limit} for this package.`}
+                </p>
+              </div>
+            ) : (
+              <p className="dashboard-copy">
+                Select a package below to see your all-inclusive price.
               </p>
-              <p>
-                Advance (30%): <strong>{formatPKR(calculator.advance)}</strong>
-              </p>
-              <p>
-                Remaining (70%):{" "}
-                <strong>{formatPKR(calculator.remaining)}</strong>
-              </p>
-              <p
-                className={
-                  calculator.available ? "availability-ok" : "availability-bad"
-                }
-              >
-                {calculator.available
-                  ? `Seats available for selected category (limit ${calculator.limit}).`
-                  : `Selected seats exceed limit ${calculator.limit}.`}
-              </p>
-            </div>
+            )}
 
             {submitError ? (
               <p className="availability-bad">{submitError}</p>
@@ -427,29 +326,20 @@ export function CustomerDashboard({ user }) {
           </form>
         </article>
 
-        {/* Equipment Rental Section */}
         <article
-          id="customer-equipment"
-          className="customer-target-section"
-          style={{ marginTop: "2rem" }}
+          id="customer-packages"
+          className="dashboard-card dashboard-card--wide customer-target-section"
         >
-          {form.eventDate ? (
-            <>
-              <EquipmentBrowser
-                eventDate={form.eventDate}
-                onAddToCart={handleAddEquipmentToCart}
-              />
-              <EquipmentCart
-                items={equipmentCart}
-                onRemove={handleRemoveEquipment}
-                onUpdateQuantity={handleUpdateEquipmentQuantity}
-              />
-            </>
-          ) : (
-            <div className="empty-state">
-              <p>📅 Please select an event date first to browse available equipment.</p>
-            </div>
-          )}
+          <div className="dashboard-card-header">
+            <Package size={18} />
+            <h3>Event Packages</h3>
+          </div>
+          <PackageBrowser
+            eventType={form.eventType}
+            seats={form.seats}
+            selectedPackageId={selectedPackage?.id}
+            onSelectPackage={setSelectedPackage}
+          />
         </article>
 
         <div
@@ -481,7 +371,7 @@ export function CustomerDashboard({ user }) {
         </div>
         <p className="dashboard-copy">
           {latestBooking
-            ? `${latestBooking.eventType.toUpperCase()} on ${latestBooking.eventDate} at ${latestBooking.venue}. Status: ${latestBooking.status}.`
+            ? `${latestBooking.eventType.toUpperCase()} on ${latestBooking.eventDate} at ${latestBooking.venue}. Package: ${latestBooking.packageName || "N/A"}. Status: ${latestBooking.status}.`
             : "No booking submitted yet."}
         </p>
         <div className="quick-actions">

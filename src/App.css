@@ -1518,6 +1518,80 @@
   transform: scale(1.05);
 }
 
+.btn-delete-sm {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.btn-delete-sm:hover {
+  background: rgba(244, 63, 94, 0.35);
+  border-color: rgba(244, 63, 94, 0.7);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
+  transform: scale(1.05);
+}
+
+.employee-row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(20, 184, 166, 0.06);
+  border: 1px solid rgba(20, 184, 166, 0.15);
+  border-radius: 0.6rem;
+  margin-bottom: 0.6rem;
+  gap: 1rem;
+  transition: all 0.25s ease;
+}
+
+.employee-row-item:hover {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(20, 184, 166, 0.35);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.1);
+}
+
+.employee-info-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.employee-info-main strong {
+  color: #e5edf7;
+  font-size: 0.95rem;
+}
+
+.employee-info-main span {
+  font-size: 0.75rem;
+  color: rgba(20, 184, 166, 0.85);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.15rem;
+}
+
+.employee-info-stats {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+  font-size: 0.85rem;
+  color: rgba(229, 237, 247, 0.7);
+  gap: 0.15rem;
+}
+
+.btn-download-sm {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.btn-download-sm:hover {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(59, 130, 246, 0.7);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  transform: scale(1.05);
+}
+
 .empty-state {
   display: flex;
   align-items: center;
@@ -2544,3 +2618,46 @@
     opacity: 1;
   }
 }
+
+/* Stock Warning Banner for Booking Card */
+.stock-warning-banner {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  margin: 0.8rem 0;
+  border-radius: 0.75rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  backdrop-filter: blur(12px);
+  animation: slide-in 0.35s ease;
+}
+
+.stock-warning-banner .warning-icon {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.stock-warning-banner .warning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.stock-warning-banner .warning-content strong {
+  font-size: 0.88rem;
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.stock-warning-banner .warning-content ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: rgba(252, 165, 165, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+

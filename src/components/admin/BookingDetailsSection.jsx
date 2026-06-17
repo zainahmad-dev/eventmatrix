@@ -8,8 +8,10 @@ export function BookingDetailsSection({
   onFilterChange,
   onApproveBooking,
   onRejectBooking,
+  onDeleteBooking,
   formatPKR,
   errorMessage,
+  equipmentList,
 }) {
   return (
     <section id="admin-booking-details" className="admin-booking-details admin-target-section" aria-label="Detailed booking information">
@@ -35,7 +37,9 @@ export function BookingDetailsSection({
               booking={booking}
               onApprove={onApproveBooking}
               onReject={onRejectBooking}
+              onDelete={onDeleteBooking}
               formatPKR={formatPKR}
+              equipmentList={equipmentList}
             />
           ))}
         </div>

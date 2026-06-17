@@ -6,7 +6,7 @@ import {
   Gauge,
   TrendingUp,
 } from 'lucide-react';
-import { fetchEvents, fetchAllEventsAdmin, updateEventStatus } from '../../api/events';
+import { fetchAllEventsAdmin, updateEventStatus, deleteEventBooking } from '../../api/events';
 import { fetchEquipment } from '../../api/equipment';
 import { EmployeeManagementPanel } from '../admin/EmployeeManagement';
 import { QuotationInvoicesPanel } from '../admin/QuotationInvoicesPanel';
@@ -14,6 +14,7 @@ import { AdminNavbar } from '../common/AdminNavbar';
 import { EventCategoriesSection } from '../admin/EventCategoriesSection';
 import { BookingDetailsSection } from '../admin/BookingDetailsSection';
 import { EquipmentInventoryDashboard } from '../admin/EquipmentInventoryDashboard';
+import { PackageManagementPanel } from '../admin/PackageManagementPanel';
 import { useBookingMetrics, useOverviewCards, useEventManagementSummary, useBusinessIntelligence } from '../admin/AdminMetricsHooks';
 
 // ============================================================================
@@ -127,6 +128,7 @@ export function AdminDashboard({ user }) {
     { id: 'admin-event-management', label: 'Event Management' },
     { id: 'admin-employee', label: 'Employee Management' },
     { id: 'admin-equipment', label: 'Equipment Rental' },
+    { id: 'admin-packages', label: 'Event Packages' },
     { id: 'admin-notifications', label: 'Notifications' },
     { id: 'admin-performance', label: 'Performance' },
     { id: 'admin-booking-requests', label: 'Booking Requests' },
@@ -171,6 +173,23 @@ export function AdminDashboard({ user }) {
       await loadBookings();
     } catch (error) {
       setEventSectionMessage(error.message);
+    }
+  };
+
+  /**
+   * Delete a booking request
+   * @param {string} bookingId - ID of booking to delete
+   */
+  const handleDeleteBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to permanently delete this booking request? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteEventBooking(bookingId);
+      await loadBookings();
+    } catch (error) {
+      setEventSectionMessage(`Error deleting booking: ${error.message}`);
     }
   };
 
@@ -266,8 +285,10 @@ export function AdminDashboard({ user }) {
         onFilterChange={setBookingFilter}
         onApproveBooking={(id) => handleStatusChange(id, 'approved')}
         onRejectBooking={(id) => handleStatusChange(id, 'rejected')}
+        onDeleteBooking={handleDeleteBooking}
         formatPKR={formatPKR}
         errorMessage={eventSectionMessage}
+        equipmentList={equipmentList}
       />
 
       {/* SECTION 3: OVERVIEW METRICS */}
@@ -336,7 +357,8 @@ export function AdminDashboard({ user }) {
           </p>
           <div className="status-strip">
             <span>Revenue: {metrics.hasActiveBookings ? formatPKR(metrics.totalRevenue) : 'Pending Data'}</span>
-            <span>Expenses: {totalPayroll > 0 ? formatPKR(totalPayroll) : 'Pending Data'}</span>
+            <span>Expenses: {metrics.totalInternalCost > 0 ? formatPKR(metrics.totalInternalCost) : totalPayroll > 0 ? formatPKR(totalPayroll) : 'Pending Data'}</span>
+            <span>Package Profit: {metrics.hasActiveBookings ? formatPKR(metrics.netProfit) : 'Pending Data'}</span>
             <span>Staffing: {typeof totalEmployees === 'number' ? `${totalEmployees} / 15 Filled` : 'Pending Data'}</span>
           </div>
         </article>
@@ -347,7 +369,12 @@ export function AdminDashboard({ user }) {
         <QuotationInvoicesPanel bookings={bookings} />
       </div>
 
-      {/* SECTION 7: EQUIPMENT RENTAL & INVENTORY */}
+      {/* SECTION 7: EVENT PACKAGES */}
+      <div id="admin-packages" className="admin-target-section">
+        <PackageManagementPanel />
+      </div>
+
+      {/* SECTION 8: EQUIPMENT RENTAL & INVENTORY */}
       <div id="admin-equipment" className="admin-target-section">
         <EquipmentInventoryDashboard />
       </div>

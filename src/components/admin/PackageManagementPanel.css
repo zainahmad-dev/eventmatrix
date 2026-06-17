@@ -1,0 +1,116 @@
+.package-management-panel .package-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.package-form {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+}
+
+.package-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.package-form label,
+.package-staff-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.package-event-types,
+.package-services {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin: 0.85rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.package-staff-grid,
+.package-equipment-picker,
+.package-cost-preview {
+  margin-top: 1rem;
+}
+
+.package-staff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.package-equipment-list {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.5rem;
+}
+
+.package-equipment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+}
+
+.package-equipment-item.is-selected {
+  background: #eff6ff;
+}
+
+.qty-input {
+  width: 72px;
+}
+
+.cost-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.package-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.package-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.package-admin-card-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.package-admin-card-header span {
+  font-size: 1.75rem;
+}
+
+.package-admin-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  margin: 0.75rem 0;
+}
+
+.package-admin-actions {
+  display: flex;
+  gap: 0.5rem;
+}

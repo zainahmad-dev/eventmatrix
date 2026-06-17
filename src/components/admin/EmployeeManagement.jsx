@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Users, Plus } from 'lucide-react';
-import { fetchEmployees } from '../../api/employees';
+import { Users, Plus, Download } from 'lucide-react';
+import { fetchEmployees, fetchAttendance, downloadPayslip } from '../../api/employees';
 import { AddEmployeeForm } from './AddEmployeeForm';
 
 const roleLimits = {
@@ -16,6 +16,7 @@ const formatPKR = (amount) => `PKR ${Number(amount || 0).toLocaleString('en-PK')
 
 export function EmployeeManagementPanel({ onEmployeesUpdate }) {
   const [employees, setEmployees] = useState([]);
+  const [attendanceMap, setAttendanceMap] = useState({});
   const [summary, setSummary] = useState({ totalEmployees: 0, byRole: {}, totalPayroll: 0 });
   const [message, setMessage] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -29,6 +30,33 @@ export function EmployeeManagementPanel({ onEmployeesUpdate }) {
       if (onEmployeesUpdate) {
         onEmployeesUpdate(newSummary);
       }
+
+      try {
+        const attendanceData = await fetchAttendance();
+        if (Array.isArray(attendanceData)) {
+          const map = {};
+          const currentMonth = new Date().getMonth();
+          const currentYear = new Date().getFullYear();
+
+          attendanceData.forEach((rec) => {
+            if (rec.user?._id) {
+              const count = (rec.attendance || []).filter((entry) => {
+                const d = new Date(entry.date);
+                return (
+                  d.getMonth() === currentMonth &&
+                  d.getFullYear() === currentYear &&
+                  entry.status === 'present'
+                );
+              }).length;
+              map[rec.user._id] = count;
+            }
+          });
+          setAttendanceMap(map);
+        }
+      } catch (attErr) {
+        console.error('Error fetching attendance in admin:', attErr);
+      }
+
       setMessage('');
     } catch (error) {
       setMessage(error.message);
@@ -80,8 +108,24 @@ export function EmployeeManagementPanel({ onEmployeesUpdate }) {
         <p className="dashboard-copy">Total Employees: {summary.totalEmployees} / 15 | Payroll: {formatPKR(summary.totalPayroll)}</p>
         {employees.length ? (
           <ul className="dashboard-list">
-            {employees.slice(0, 5).map((employee) => (
-              <li key={employee._id}>{employee.name} | {formatRole(employee.employeeRole || 'unassigned')} | {formatPKR(employee.salary || 0)}</li>
+            {employees.map((employee) => (
+              <li key={employee._id} className="employee-row-item">
+                <div className="employee-info-main">
+                  <strong>{employee.name}</strong>
+                  <span>{formatRole(employee.employeeRole || 'unassigned')}</span>
+                </div>
+                <div className="employee-info-stats">
+                  <span>Salary: {formatPKR(employee.salary || 0)}</span>
+                  <span>Present: {attendanceMap[employee._id] || 0} days</span>
+                </div>
+                <button
+                  onClick={() => downloadPayslip(employee._id, employee.name)}
+                  className="btn-action btn-download-sm"
+                  title="Download payslip"
+                >
+                  <Download size={14} />
+                </button>
+              </li>
             ))}
           </ul>
         ) : (

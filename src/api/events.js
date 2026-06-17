@@ -105,3 +105,18 @@ export async function updateEventStatus(eventId, status) {
 
   return payload;
 }
+
+export async function deleteEventBooking(eventId) {
+  const response = await fetch(`/api/events/${eventId}`, {
+    method: 'DELETE',
+    headers: getAuthHeader(),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Unable to delete booking request.');
+  }
+
+  return payload;
+}

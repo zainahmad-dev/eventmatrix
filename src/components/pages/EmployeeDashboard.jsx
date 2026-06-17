@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BadgeDollarSign, Bell, CalendarClock, CheckSquare, ClipboardCheck, Star, UserCheck } from 'lucide-react';
 import { fetchEvents } from '../../api/events';
 import { EmployeeNavbar } from '../common/EmployeeNavbar';
+import { markAttendance, downloadPayslip, fetchAttendance } from '../../api/employees';
 
 const formatPKR = (amount) => `PKR ${Number(amount || 0).toLocaleString('en-PK')}`;
 
@@ -23,6 +24,7 @@ function FeatureCard({ icon, title, items }) {
 
 export function EmployeeDashboard({ user }) {
   const [events, setEvents] = useState([]);
+  const [attendanceList, setAttendanceList] = useState([]);
   const [message, setMessage] = useState('');
   const sectionItems = [
     { id: 'employee-overview', label: 'Overview' },
@@ -35,17 +37,58 @@ export function EmployeeDashboard({ user }) {
     try {
       const data = await fetchEvents();
       setEvents(data);
-      setMessage('');
     } catch (error) {
       setMessage(error.message);
     }
   };
 
+  const loadAttendance = async () => {
+    try {
+      const data = await fetchAttendance();
+      setAttendanceList(data?.attendance || []);
+    } catch (error) {
+      console.error('Error loading attendance:', error);
+    }
+  };
+
   useEffect(() => {
     loadEvents();
+    loadAttendance();
     const timer = window.setInterval(loadEvents, 5000);
     return () => window.clearInterval(timer);
   }, []);
+
+  const handleMarkAttendance = async () => {
+    try {
+      await markAttendance();
+      setMessage('Attendance marked successfully!');
+      loadAttendance();
+    } catch (error) {
+      setMessage(`Failed to mark attendance: ${error.message}`);
+    }
+  };
+
+  const handleDownloadPayslip = async () => {
+    try {
+      await downloadPayslip('', user?.name || 'Employee');
+      setMessage('Payslip downloaded successfully!');
+    } catch (error) {
+      setMessage(`Failed to download payslip: ${error.message}`);
+    }
+  };
+
+  const presentDaysThisMonth = useMemo(() => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    return attendanceList.filter((entry) => {
+      const d = new Date(entry.date);
+      return (
+        d.getMonth() === currentMonth &&
+        d.getFullYear() === currentYear &&
+        entry.status === 'present'
+      );
+    }).length;
+  }, [attendanceList]);
 
   const approvedEvents = useMemo(() => events.filter((event) => event.status === 'approved'), [events]);
   const pendingEvents = useMemo(() => events.filter((event) => event.status === 'pending'), [events]);
@@ -75,7 +118,8 @@ export function EmployeeDashboard({ user }) {
     { label: 'Completed Events', value: String(completedEvents.length) },
     { label: 'Role', value: user?.employeeRole ? user.employeeRole.replace('_', ' ').toUpperCase() : 'EMPLOYEE' },
     { label: 'Monthly Salary', value: formatPKR(user?.salary || 0) },
-  ]), [approvedEvents.length, pendingEvents.length, completedEvents.length, user?.employeeRole, user?.salary]);
+    { label: 'Attendance (This Month)', value: `${presentDaysThisMonth} Days` },
+  ]), [approvedEvents.length, pendingEvents.length, completedEvents.length, user?.employeeRole, user?.salary, presentDaysThisMonth]);
 
   return (
     <section className="dashboard-shell" aria-label="Employee dashboard">
@@ -112,9 +156,9 @@ export function EmployeeDashboard({ user }) {
           <h3>Employee Tools</h3>
         </div>
         <div className="quick-actions">
-          <button type="button"><CheckSquare size={15} /> Mark Attendance</button>
+          <button type="button" onClick={handleMarkAttendance}><CheckSquare size={15} /> Mark Attendance</button>
           <button type="button"><Star size={15} /> View Performance</button>
-          <button type="button"><BadgeDollarSign size={15} /> Check Salary Slip</button>
+          <button type="button" onClick={handleDownloadPayslip}><BadgeDollarSign size={15} /> Check Salary Slip</button>
           <button type="button"><Bell size={15} /> View Notifications</button>
         </div>
       </article>

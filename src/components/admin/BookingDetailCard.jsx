@@ -1,5 +1,36 @@
 import React from 'react';
-export function BookingDetailCard({ booking, onApprove, onReject, formatPKR }) {
+import { Trash2 } from 'lucide-react';
+
+export function BookingDetailCard({ booking, onApprove, onReject, onDelete, formatPKR, equipmentList }) {
+  const warnings = React.useMemo(() => {
+    if (!booking || booking.status !== 'pending' || !booking.packageSnapshot?.equipmentItems || !Array.isArray(equipmentList)) {
+      return [];
+    }
+
+    const shortItems = [];
+    for (const reqItem of booking.packageSnapshot.equipmentItems) {
+      const eq = equipmentList.find(
+        (e) => e.name.toLowerCase().trim() === reqItem.name.toLowerCase().trim()
+      );
+      if (eq) {
+        if (eq.availableQuantity < reqItem.quantity) {
+          shortItems.push({
+            name: reqItem.name,
+            required: reqItem.quantity,
+            available: eq.availableQuantity,
+          });
+        }
+      } else {
+        shortItems.push({
+          name: reqItem.name,
+          required: reqItem.quantity,
+          available: 0,
+        });
+      }
+    }
+    return shortItems;
+  }, [booking, equipmentList]);
+
   return (
     <article className="booking-detail-card">
       {/* Header: Event Type and Status Badge */}
@@ -12,6 +43,24 @@ export function BookingDetailCard({ booking, onApprove, onReject, formatPKR }) {
           {booking?.status || 'pending'}
         </span>
       </div>
+
+      {/* Stock Warning Banner */}
+      {warnings.length > 0 && (
+        <div className="stock-warning-banner">
+          <span className="warning-icon">⚠️</span>
+          <div className="warning-content">
+            <strong>Stock Alert: Insufficient Items</strong>
+            <ul>
+              {warnings.map((w, idx) => (
+                <li key={idx}>
+                  {w.name} (Need {w.required}, Has {w.available})
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
 
       {/* Quick Info: Customer, Date, Venue, Seats */}
       <div className="booking-detail-quick-info">
@@ -28,12 +77,23 @@ export function BookingDetailCard({ booking, onApprove, onReject, formatPKR }) {
           <span className="info-value">{booking?.venue || 'TBD'}</span>
         </div>
         <div className="info-item">
-          <span className="info-label">Seats:</span>
+          <span className="info-label">Package:</span>
+          <span className="info-value">{booking?.packageName || 'Custom'}</span>
+        </div>
+        <div className="info-item">
+          <span className="info-label">Guests:</span>
           <span className="info-value">
-            {booking?.seats || 0} ({(booking?.seatCategory || 'standard').charAt(0).toUpperCase()})
+            {booking?.seats || 0} ({(booking?.seatCategory || 'standard').toUpperCase()})
           </span>
         </div>
       </div>
+
+      {booking?.costBreakdown ? (
+        <div className="booking-detail-profit">
+          <span>Profit: {formatPKR(booking.costBreakdown.profit)}</span>
+          <span>Staff cost: {formatPKR(booking.costBreakdown.staffCost)}</span>
+        </div>
+      ) : null}
 
       {/* Pricing: Total, Advance, Due */}
       <div className="booking-detail-pricing">
@@ -58,7 +118,7 @@ export function BookingDetailCard({ booking, onApprove, onReject, formatPKR }) {
         {booking?.cateringSupport && <span className="addon-mini">🍽️</span>}
       </div>
 
-      {/* Action Buttons: Approve & Reject */}
+      {/* Action Buttons: Approve, Reject, Delete */}
       <div className="booking-detail-actions">
         <button
           type="button"
@@ -75,6 +135,14 @@ export function BookingDetailCard({ booking, onApprove, onReject, formatPKR }) {
           title="Reject this booking"
         >
           ✕
+        </button>
+        <button
+          type="button"
+          className="btn-action btn-delete-sm"
+          onClick={() => onDelete(booking.id)}
+          title="Delete this booking request"
+        >
+          <Trash2 size={14} />
         </button>
       </div>
     </article>

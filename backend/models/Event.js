@@ -47,6 +47,34 @@ const eventSchema = new mongoose.Schema({
     quantity: Number
   }],
 
+  package: { type: mongoose.Schema.Types.ObjectId, ref: "Package" },
+  packageName: String,
+  packageSnapshot: {
+    name: String,
+    tier: String,
+    menuPlan: String,
+    services: {
+      decoration: Boolean,
+      lighting: Boolean,
+      cateringSupport: Boolean,
+    },
+    equipmentItems: [{
+      equipment: { type: mongoose.Schema.Types.ObjectId, ref: "EquipmentItem" },
+      name: String,
+      quantity: Number,
+      pricePerDay: Number,
+    }],
+  },
+  costBreakdown: {
+    equipmentCost: Number,
+    foodCost: Number,
+    staffCost: Number,
+    otherCosts: Number,
+    totalInternalCost: Number,
+    profit: Number,
+    profitMargin: Number,
+  },
+
   totalAmount: Number
 }, { timestamps: true });
 

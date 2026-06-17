@@ -11,6 +11,7 @@ const quotationsRouter = require('./routes/quotations');
 const employeesRouter = require('./routes/employees');
 const inventoryRouter = require('./routes/inventory');
 const equipmentRouter = require('./routes/equipment');
+const packagesRouter = require('./routes/packages');
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ require('./models/AdminActionLog');
 require('./models/Category');
 require('./models/EquipmentItem');
 require('./models/EquipmentBooking');
+require('./models/Package');
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/eventmatrix';
@@ -36,7 +38,7 @@ async function startServer() {
   try {
     await mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log('Connected to MongoDB');
-    const modelNames = ['User', 'Event', 'Employee', 'Inventory', 'Payment', 'Quotation', 'AdminActionLog', 'Category', 'EquipmentItem', 'EquipmentBooking'];
+    const modelNames = ['User', 'Event', 'Employee', 'Inventory', 'Payment', 'Quotation', 'AdminActionLog', 'Category', 'EquipmentItem', 'EquipmentBooking', 'Package'];
     await Promise.all(modelNames.map(async (name) => {
       await mongoose.model(name).createCollection();
     }));
@@ -54,6 +56,7 @@ app.get('/', (req, res) => res.send('EventMatrix backend running'));
 app.use('/api/auth', authRouter); // Auth routes don't need token
 app.use('/api/events', eventsRouter);
 app.use('/api/equipment', equipmentRouter); // Equipment routes: public GET, protected POST/PUT/DELETE
+app.use('/api/packages', packagesRouter);
 app.use('/api/inventory', inventoryRouter);
 app.use('/api/quotations', quotationsRouter);
 app.use('/api/employees', employeesRouter);

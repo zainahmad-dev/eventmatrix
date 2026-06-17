@@ -5,6 +5,14 @@ export function useBookingMetrics(bookings) {
   return useMemo(() => {
     const activeBookings = bookings.filter((booking) => booking.status !== 'rejected');
     const totalRevenue = activeBookings.reduce((sum, booking) => sum + (booking.total || 0), 0);
+    const totalInternalCost = activeBookings.reduce(
+      (sum, booking) => sum + (booking.costBreakdown?.totalInternalCost || 0),
+      0,
+    );
+    const totalProfit = activeBookings.reduce(
+      (sum, booking) => sum + (booking.costBreakdown?.profit ?? (booking.total || 0) * 0.28),
+      0,
+    );
     const approvedCount = activeBookings.filter((booking) => booking.status === 'approved').length;
     const pendingCount = activeBookings.filter((booking) => booking.status === 'pending').length;
     const totalSeats = activeBookings.reduce((sum, booking) => sum + (booking.seats || 0), 0);
@@ -13,7 +21,8 @@ export function useBookingMetrics(bookings) {
     return {
       hasActiveBookings: activeBookings.length > 0,
       totalRevenue,
-      netProfit: totalRevenue * 0.28,
+      totalInternalCost,
+      netProfit: totalProfit,
       approvedCount,
       pendingCount,
       totalBookings: activeBookings.length,
@@ -70,8 +79,8 @@ export function useOverviewCards(metrics, formatPKR, totalEmployees, equipmentLi
         label: 'Net Profit',
         value: metrics.hasActiveBookings ? formatPKR(metrics.netProfit) : '--',
         context: metrics.hasActiveBookings
-          ? 'Estimated at 28% margin for preview.'
-          : 'Will be calculated from income and expense entries.',
+          ? 'From package bookings: revenue minus equipment, food & staff costs.'
+          : 'Will be calculated from package cost breakdowns.',
       },
       {
         label: 'Upcoming Events',
@@ -199,11 +208,19 @@ export function useBusinessIntelligence(bookings, totalPayroll) {
 
     // 4. Profit vs Expense
     const payrollExpense = Number(totalPayroll || 0);
-    const operationalProfit = totalRevenue - payrollExpense;
+    const packageCosts = activeBookings.reduce(
+      (sum, booking) => sum + (booking.costBreakdown?.totalInternalCost || 0),
+      0,
+    );
+    const packageProfit = activeBookings.reduce(
+      (sum, booking) => sum + (booking.costBreakdown?.profit || 0),
+      0,
+    );
+    const operationalProfit = packageProfit > 0 ? packageProfit : totalRevenue - payrollExpense;
     const profitMargin = totalRevenue > 0 ? (operationalProfit / totalRevenue) * 100 : 0;
-    const profitVsExpenseSentence = (totalRevenue > 0 || payrollExpense > 0)
-      ? `Operational Revenue: PKR ${totalRevenue.toLocaleString('en-PK')} vs Employee Payroll: PKR ${payrollExpense.toLocaleString('en-PK')}. Net operational margin is ${profitMargin.toFixed(1)}%.`
-      : 'Profit-versus-expense comparison will be shown after accounting sync.';
+    const profitVsExpenseSentence = (totalRevenue > 0 || payrollExpense > 0 || packageCosts > 0)
+      ? `Revenue: PKR ${totalRevenue.toLocaleString('en-PK')} | Package costs (equipment + food + event staff): PKR ${packageCosts.toLocaleString('en-PK')} | Monthly payroll: PKR ${payrollExpense.toLocaleString('en-PK')}. Net package profit: PKR ${packageProfit.toLocaleString('en-PK')} (${profitMargin.toFixed(1)}% margin).`
+      : 'Profit-versus-expense comparison will be shown after package bookings are submitted.';
     const profitVsExpenseMeta = (totalRevenue > 0 || payrollExpense > 0)
       ? 'Status: Live - Integrated with payroll records'
       : 'Status: waiting for live data';
