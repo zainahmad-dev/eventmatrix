@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, ChevronDown, CircleDollarSign, Package, Plus, TriangleAlert, Wrench } from 'lucide-react';
-import { fetchEquipment, fetchCategories, createEquipment, updateEquipment, updateEquipmentMaintenance, deleteEquipment, initializeEquipmentDatabase } from '../../api/equipment';
+import { fetchEquipment, fetchCategories, createEquipment, updateEquipment, updateEquipmentMaintenance, adjustEquipmentStock, deleteEquipment, initializeEquipmentDatabase } from '../../api/equipment';
 
 const CATEGORY_OPTIONS = [
   { value: 'all', label: 'All Categories', emoji: '' },
@@ -135,6 +135,31 @@ export function EquipmentInventoryDashboard() {
   const handleFormSubmit = async () => {
     await loadData();
     handleFormClose();
+  };
+
+  const handleStockAdjust = async (item, operation) => {
+    const actionLabel = operation === 'add' ? 'add' : 'subtract';
+    const value = window.prompt(`Enter quantity to ${actionLabel} for ${item.name}:`);
+
+    if (value === null) {
+      return;
+    }
+
+    const quantity = Number(value);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setError('Please enter a valid positive number.');
+      return;
+    }
+
+    try {
+      await adjustEquipmentStock(item.id, {
+        operation,
+        quantity,
+      });
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -282,6 +307,20 @@ export function EquipmentInventoryDashboard() {
                         Restore
                       </button>
                     )}
+                    <button
+                      className="action-btn stock-in-btn"
+                      onClick={() => handleStockAdjust(item, 'add')}
+                      title="Add stock"
+                    >
+                      + Stock
+                    </button>
+                    <button
+                      className="action-btn stock-out-btn"
+                      onClick={() => handleStockAdjust(item, 'subtract')}
+                      title="Subtract stock"
+                    >
+                      - Stock
+                    </button>
                     <button
                       className="action-btn delete-btn"
                       onClick={() => handleDelete(item.id)}

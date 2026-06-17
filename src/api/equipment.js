@@ -265,6 +265,30 @@ export async function updateEquipmentMaintenance(itemId, { condition, maintenanc
   }
 }
 
+export async function adjustEquipmentStock(itemId, { operation, quantity }) {
+  try {
+    const response = await fetch(`/api/equipment/${itemId}/stock`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ operation, quantity }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload.error || 'Unable to adjust equipment stock.');
+    }
+
+    return payload;
+  } catch (error) {
+    console.error('Error adjusting equipment stock:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // DELETE ENDPOINTS
 // ============================================================================

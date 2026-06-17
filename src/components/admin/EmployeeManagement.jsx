@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Users, Plus } from 'lucide-react';
 import { fetchEmployees } from '../../api/employees';
+import { AddEmployeeForm } from './AddEmployeeForm';
 
 const roleLimits = {
   waiter: 8,
@@ -17,6 +18,7 @@ export function EmployeeManagementPanel() {
   const [employees, setEmployees] = useState([]);
   const [summary, setSummary] = useState({ totalEmployees: 0, byRole: {}, totalPayroll: 0 });
   const [message, setMessage] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const loadEmployees = async () => {
     try {
@@ -48,32 +50,48 @@ export function EmployeeManagementPanel() {
   ), [summary.byRole]);
 
   return (
-    <article className="dashboard-card admin-animate-card">
-      <div className="dashboard-card-header">
-        <Users size={18} />
-        <h3>Employee Management</h3>
-      </div>
-      <p className="dashboard-copy">Realtime workforce status synced from database.</p>
-      <div className="policy-grid">
-        {roleRows.map((item) => (
-          <div className="policy-item" key={item.role}>
-            <strong>{item.role}</strong>
-            <span>Filled: {item.used} / {item.limit}</span>
-            <span>Remaining: {Math.max(item.limit - item.used, 0)}</span>
-          </div>
-        ))}
-      </div>
-      <p className="dashboard-copy">Total Employees: {summary.totalEmployees} / 15 | Payroll: {formatPKR(summary.totalPayroll)}</p>
-      {employees.length ? (
-        <ul className="dashboard-list">
-          {employees.slice(0, 5).map((employee) => (
-            <li key={employee._id}>{employee.name} | {formatRole(employee.employeeRole || 'unassigned')} | {formatPKR(employee.salary || 0)}</li>
+    <>
+      <article className="dashboard-card admin-animate-card">
+        <div className="dashboard-card-header">
+          <Users size={18} />
+          <h3>Employee Management</h3>
+          <button
+            className="btn-icon-small"
+            onClick={() => setShowAddForm(true)}
+            title="Add new employee"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+        <p className="dashboard-copy">Realtime workforce status synced from database.</p>
+        <div className="policy-grid">
+          {roleRows.map((item) => (
+            <div className="policy-item" key={item.role}>
+              <strong>{item.role}</strong>
+              <span>Filled: {item.used} / {item.limit}</span>
+              <span>Remaining: {Math.max(item.limit - item.used, 0)}</span>
+            </div>
           ))}
-        </ul>
-      ) : (
-        <p className="dashboard-copy">No employee records available yet.</p>
+        </div>
+        <p className="dashboard-copy">Total Employees: {summary.totalEmployees} / 15 | Payroll: {formatPKR(summary.totalPayroll)}</p>
+        {employees.length ? (
+          <ul className="dashboard-list">
+            {employees.slice(0, 5).map((employee) => (
+              <li key={employee._id}>{employee.name} | {formatRole(employee.employeeRole || 'unassigned')} | {formatPKR(employee.salary || 0)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="dashboard-copy">No employee records available yet.</p>
+        )}
+        {message ? <p className="dashboard-copy">{message}</p> : null}
+      </article>
+
+      {showAddForm && (
+        <AddEmployeeForm
+          onEmployeeAdded={loadEmployees}
+          onClose={() => setShowAddForm(false)}
+        />
       )}
-      {message ? <p className="dashboard-copy">{message}</p> : null}
-    </article>
+    </>
   );
 }

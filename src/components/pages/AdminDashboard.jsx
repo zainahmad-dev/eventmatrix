@@ -7,13 +7,11 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { fetchEvents, fetchAllEventsAdmin, updateEventStatus } from '../../api/events';
-import { InventoryPanel } from '../admin/Inventory';
 import { EmployeeManagementPanel } from '../admin/EmployeeManagement';
 import { QuotationInvoicesPanel } from '../admin/QuotationInvoicesPanel';
 import { AdminNavbar } from '../common/AdminNavbar';
 import { EventCategoriesSection } from '../admin/EventCategoriesSection';
 import { BookingDetailsSection } from '../admin/BookingDetailsSection';
-import { StocksSection } from '../admin/StocksSection';
 import { EquipmentInventoryDashboard } from '../admin/EquipmentInventoryDashboard';
 import { useBookingMetrics, useOverviewCards, useEventManagementSummary } from '../admin/AdminMetricsHooks';
 
@@ -101,8 +99,6 @@ export function AdminDashboard({ user }) {
     { id: 'admin-insights', label: 'Business Intelligence' },
     { id: 'admin-event-management', label: 'Event Management' },
     { id: 'admin-employee', label: 'Employee Management' },
-    { id: 'admin-inventory', label: 'Inventory' },
-    { id: 'admin-stocks', label: 'Stocks' },
     { id: 'admin-equipment', label: 'Equipment Rental' },
     { id: 'admin-notifications', label: 'Notifications' },
     { id: 'admin-performance', label: 'Performance' },
@@ -280,10 +276,6 @@ export function AdminDashboard({ user }) {
           <EmployeeManagementPanel />
         </div>
 
-        <div id="admin-inventory" className="admin-target-section admin-grid-slot admin-grid-slot--inventory">
-          <InventoryPanel bookings={bookings} />
-        </div>
-
         <div id="admin-notifications" className="admin-target-section admin-grid-slot admin-grid-slot--notifications">
           <FeatureCard
             icon={<Bell size={18} />}
@@ -316,11 +308,6 @@ export function AdminDashboard({ user }) {
       {/* SECTION 7: EQUIPMENT RENTAL & INVENTORY */}
       <div id="admin-equipment" className="admin-target-section">
         <EquipmentInventoryDashboard />
-      </div>
-
-      {/* SECTION 8: STOCKS & INVENTORY MANAGEMENT */}
-      <div id="admin-stocks" className="admin-target-section">
-        <StocksSection />
       </div>
     </section>
   );

@@ -440,6 +440,71 @@ router.put('/:id', authenticateToken, authorizeAdmin, async (req, res) => {
 });
 
 /**
+ * PUT /api/equipment/:id/stock - Adjust stock quantity (Admin only)
+ * Body:
+ *   - operation: "add" | "subtract"
+ *   - quantity: positive number
+ */
+router.put('/:id/stock', authenticateToken, authorizeAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { operation, quantity } = req.body || {};
+
+    if (!['add', 'subtract'].includes(operation)) {
+      return res.status(400).json({ error: 'operation must be either "add" or "subtract".' });
+    }
+
+    const amount = Number(quantity);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'quantity must be a positive number.' });
+    }
+
+    const item = await EquipmentItem.findById(id).populate('category');
+    if (!item) {
+      return res.status(404).json({ error: 'Equipment item not found.' });
+    }
+
+    const reservedQuantity = Math.max(0, Number(item.totalQuantity || 0) - Number(item.availableQuantity || 0));
+    const delta = operation === 'add' ? amount : -amount;
+    const nextTotal = Number(item.totalQuantity || 0) + delta;
+
+    if (nextTotal < 0) {
+      return res.status(400).json({ error: 'Total quantity cannot be negative.' });
+    }
+
+    if (nextTotal < reservedQuantity) {
+      return res.status(400).json({
+        error: `Cannot reduce below reserved quantity (${reservedQuantity}).`,
+      });
+    }
+
+    item.totalQuantity = nextTotal;
+    item.availableQuantity = Math.max(0, nextTotal - reservedQuantity);
+
+    const updated = await item.save();
+
+    await AdminActionLog.create({
+      performedBy: req.user.id,
+      actionType: operation === 'add' ? 'equipment_stock_added' : 'equipment_stock_subtracted',
+      summary: `${operation === 'add' ? 'Added' : 'Subtracted'} ${amount} units: ${updated.name}`,
+      payload: {
+        itemId: updated._id,
+        name: updated.name,
+        operation,
+        quantity: amount,
+        previousTotalQuantity: Number(item.totalQuantity || 0) - delta,
+        newTotalQuantity: Number(updated.totalQuantity || 0),
+      },
+    });
+
+    res.json(toEquipmentShape(updated));
+  } catch (err) {
+    console.error('Error adjusting stock:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * PUT /api/equipment/:id/maintenance - Update maintenance status (Admin only)
  */
 router.put('/:id/maintenance', authenticateToken, authorizeAdmin, async (req, res) => {
