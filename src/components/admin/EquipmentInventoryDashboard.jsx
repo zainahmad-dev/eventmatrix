@@ -124,6 +124,7 @@ function RentalEquipmentPanel() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     initDatabase();
     const timer = setInterval(loadData, 30000);

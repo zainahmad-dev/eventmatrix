@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Users, Plus, Download } from 'lucide-react';
 import { fetchEmployees, fetchAttendance, downloadPayslip } from '../../api/employees';
 import { AddEmployeeForm } from './AddEmployeeForm';
@@ -21,7 +21,7 @@ export function EmployeeManagementPanel({ onEmployeesUpdate }) {
   const [message, setMessage] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const loadEmployees = async () => {
+  const loadEmployees = useCallback(async () => {
     try {
       const result = await fetchEmployees();
       setEmployees(result.employees || []);
@@ -61,13 +61,13 @@ export function EmployeeManagementPanel({ onEmployeesUpdate }) {
     } catch (error) {
       setMessage(error.message);
     }
-  };
+  }, [onEmployeesUpdate]);
 
   useEffect(() => {
     loadEmployees();
     const timer = window.setInterval(loadEmployees, 5000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [loadEmployees]);
 
   const roleRows = useMemo(() => (
     Object.keys(roleLimits).map((role) => {
