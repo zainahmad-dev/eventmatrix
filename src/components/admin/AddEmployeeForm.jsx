@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { createEmployee } from '../../api/employees';
 
 const EMPLOYEE_ROLES = {

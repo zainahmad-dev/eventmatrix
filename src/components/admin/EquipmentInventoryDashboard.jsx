@@ -115,17 +115,15 @@ function RentalEquipmentPanel() {
     }
   };
 
-  const initDatabase = async () => {
-    try {
-      await initializeEquipmentDatabase();
-      await loadData();
-    } catch {
-      await loadData();
-    }
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    const initDatabase = async () => {
+      try {
+        await initializeEquipmentDatabase();
+        await loadData();
+      } catch {
+        await loadData();
+      }
+    };
     initDatabase();
     const timer = setInterval(loadData, 30000);
     return () => clearInterval(timer);
