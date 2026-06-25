@@ -1,5 +1,5 @@
 # Admin Dashboard Refactoring - Summary & Implementation Guide
-
+MONGO_URI=mongodb://127.0.0.1:27017/eventmatrix
 ## 🎯 What Was Done
 
 The AdminDashboard has been completely refactored from **one complex 700+ line component** into **6 focused, reusable components** with clear responsibilities.
